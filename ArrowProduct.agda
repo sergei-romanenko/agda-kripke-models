@@ -66,7 +66,7 @@ module Soundness (kripke : Kripke) where
 
   _⊩_ : K → Formula → Set
   w ⊩ ⟪ a ⟫ = w ⊩ᵃ a
-  w ⊩ (p ⊃ q) = {w' : K} → w ≤ w' → w' ⊩ p → w' ⊩ q
+  w ⊩ (p ⊃ q) = {w′ : K} → w ≤ w′ → w′ ⊩ p → w′ ⊩ q
   w ⊩ (p ∧ q) = (w ⊩ p) × (w ⊩ q)
 
   ⊩-≤ : ∀ p {w w′ : K} → w ≤ w′ → w ⊩ p → w′ ⊩ p
