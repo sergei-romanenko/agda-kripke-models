@@ -53,6 +53,9 @@ module SampleProofs (a b c : Formula) where
   a∨b⊃b∨a : [] ⊢ ((a ∨ b) ⊃ (b ∨ a))
   a∨b⊃b∨a = lam (case hyp (inr hyp) (inl hyp))
 
+  ∧-assoc : [] ⊢ (((a ∧ b) ∧ c) ⊃ (a ∧ (b ∧ c)))
+  ∧-assoc = lam (pair (fst (fst hyp)) (pair (snd (fst hyp)) (snd hyp)))
+
 -- Worlds (Kripke structures)
 
 record Kripke : Set₁ where
@@ -108,10 +111,10 @@ module Soundness (kripke : Kripke) where
     k ≤-refl (⊩ˢ-≤ p w≤w′ w⊩ˢp)
 
   bind : ∀ p q {w} → w ⊩ p → (∀ {w′} → w ≤ w′ → w′ ⊩ˢ p → w′ ⊩ q) → w ⊩ q
-  bind p q {w} w⊩p k r {w′} w≤w′ k′ =
-    w⊩p r w≤w′ (λ {w′′} w′≤w′′ w′′⊩ˢp →
-      k (≤-trans w≤w′ w′≤w′′) w′′⊩ˢp r ≤-refl (λ {w′′′} w′′≤w′′′ w′′′⊩ˢq →
-        k′ (≤-trans w′≤w′′ w′′≤w′′′) w′′′⊩ˢq))
+  bind p q w⊩p k r w≤w′ k′ =
+    w⊩p r w≤w′
+      (λ w′≤w′′ w′′⊩ˢp → k (≤-trans w≤w′ w′≤w′′) w′′⊩ˢp r ≤-refl
+        (λ w′′≤w′′′ → k′ (≤-trans w′≤w′′ w′′≤w′′′)))
 
   soundness : ∀ {Γ p} → Γ ⊢ p → {w : K} → w ⊪ Γ → w ⊩ p
   soundness hyp (w⊩p , w⊪Γ) =
