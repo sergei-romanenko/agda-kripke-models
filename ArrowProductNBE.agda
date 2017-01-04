@@ -39,16 +39,16 @@ data _⊢_ : List Formula → Formula → Set where
 mutual
 
   data _⊢ʳ_ : List Formula → Formula → Set where
-    ne : ∀ {Γ A} → Γ ⊢ᵉ A → Γ ⊢ʳ A
-    lam : ∀ {Γ A B} → (A ∷ Γ) ⊢ʳ B → Γ ⊢ʳ (A ⊃ B)
-    pair : ∀ {Γ A B} → Γ ⊢ʳ A → Γ ⊢ʳ B → Γ ⊢ʳ (A ∧ B)
+    ne : ∀ {Γ p} → Γ ⊢ᵉ p → Γ ⊢ʳ p
+    lam : ∀ {Γ p q} → (p ∷ Γ) ⊢ʳ q → Γ ⊢ʳ (p ⊃ q)
+    pair : ∀ {Γ p q} → Γ ⊢ʳ p → Γ ⊢ʳ q → Γ ⊢ʳ (p ∧ q)
 
   data _⊢ᵉ_ : List Formula → Formula → Set where
-    hyp : ∀ {Γ A} → (A ∷ Γ) ⊢ᵉ A
-    wkn : ∀ {Γ A B} → Γ ⊢ʳ A → (B ∷ Γ) ⊢ᵉ A
-    app : ∀ {Γ A B} → Γ ⊢ᵉ (A ⊃ B) → Γ ⊢ʳ A → Γ ⊢ᵉ B
-    fst : ∀ {Γ A B} → Γ ⊢ᵉ (A ∧ B) → Γ ⊢ᵉ A
-    snd : ∀ {Γ A B} → Γ ⊢ᵉ (A ∧ B) → Γ ⊢ᵉ B
+    hyp : ∀ {Γ p} → (p ∷ Γ) ⊢ᵉ p
+    wkn : ∀ {Γ p q} → Γ ⊢ʳ p → (q ∷ Γ) ⊢ᵉ p
+    app : ∀ {Γ p q} → Γ ⊢ᵉ (p ⊃ q) → Γ ⊢ʳ p → Γ ⊢ᵉ q
+    fst : ∀ {Γ p q} → Γ ⊢ᵉ (p ∧ q) → Γ ⊢ᵉ p
+    snd : ∀ {Γ p q} → Γ ⊢ᵉ (p ∧ q) → Γ ⊢ᵉ q
 
 module SampleProofs (a b c : Formula) where
 
@@ -92,9 +92,9 @@ record Kripke : Set₁ where
     K : Set
     _≤_ : K → K → Set
     ≤-refl : {w : K} → w ≤ w
-    ≤-trans : {w₁ w₂ w₃ : K} → w₁ ≤ w₂ → w₂ ≤ w₃ → w₁ ≤ w₃
+    _●_ : {w w′ w′′ : K} → w ≤ w′ → w′ ≤ w′′ → w ≤ w′′
     _⊩ᵃ_ : K → Proposition → Set
-    ⊩ᵃ-≤ : {P : Proposition} {w₁ w₂ : K} → w₁ ≤ w₂ → w₁ ⊩ᵃ P → w₂ ⊩ᵃ P
+    ⊩ᵃ-≤ : {P : Proposition} {w w′ : K} → w ≤ w′ → w ⊩ᵃ P → w′ ⊩ᵃ P
 
 module Soundness (kripke : Kripke) where
 
@@ -105,16 +105,16 @@ module Soundness (kripke : Kripke) where
   w ⊩ (p ⊃ q) = {w′ : K} → w ≤ w′ → w′ ⊩ p → w′ ⊩ q
   w ⊩ (p ∧ q) = (w ⊩ p) × (w ⊩ q)
 
-  ⊩-≤ : ∀ p {w w′ : K} → w ≤ w′ → w ⊩ p → w′ ⊩ p
-  ⊩-≤ ⟪ a ⟫ = ⊩ᵃ-≤
-  ⊩-≤ (p ⊃ q) w≤w′ w⊩p⊃q w′≤w′′ =
-    w⊩p⊃q (≤-trans w≤w′ w′≤w′′)
-  ⊩-≤ (p ∧ q) w≤w′ =
-    Prod.map (⊩-≤ p w≤w′) (⊩-≤ q w≤w′)
-
   _⊪_ : K → List Formula → Set
   w ⊪ [] = ⊤
   w ⊪ (p ∷ Γ) = (w ⊩ p) × (w ⊪ Γ)
+
+  ⊩-≤ : ∀ p {w w′ : K} → w ≤ w′ → w ⊩ p → w′ ⊩ p
+  ⊩-≤ ⟪ a ⟫ = ⊩ᵃ-≤
+  ⊩-≤ (p ⊃ q) w≤w′ w⊩p⊃q w′≤w′′ =
+    w⊩p⊃q (w≤w′ ● w′≤w′′)
+  ⊩-≤ (p ∧ q) w≤w′ =
+    Prod.map (⊩-≤ p w≤w′) (⊩-≤ q w≤w′)
 
   ⊪-≤ : ∀ Γ {w w′ : K} → w ≤ w′ → w ⊪ Γ → w′ ⊪ Γ
   ⊪-≤ [] w≤w′ w⊪[] = tt
@@ -159,7 +159,7 @@ module Completeness where
   uks = record { K = List Formula;
                  _≤_ = _≼_;
                  ≤-refl = ≼-refl;
-                 ≤-trans = ≼-trans;
+                 _●_ = ≼-trans;
                  _⊩ᵃ_ = λ Γ a → Γ ⊢ʳ ⟪ a ⟫;
                  ⊩ᵃ-≤ = ⊢ʳ-≼ }
 
@@ -171,8 +171,8 @@ module Completeness where
     reify ⟪ a ⟫ Γ⊩⟪a⟫ = Γ⊩⟪a⟫
     reify (p ⊃ q) Γ⊩p⊃q =
       lam (reify q (Γ⊩p⊃q (≼-cons ≼-refl) (reflect p hyp)))
-    reify (p ∧ q) (Γ⊩p , Γ⊩q) =
-      pair (reify p Γ⊩p) (reify q Γ⊩q)
+    reify (p ∧ q) Γ⊩p∧q =
+      pair (reify p (proj₁ Γ⊩p∧q)) (reify q (proj₂ Γ⊩p∧q))
 
     reflect : ∀ {Γ} p → Γ ⊢ᵉ p → Γ ⊩ p
     reflect ⟪ a ⟫ Γ⊢ᵉ⟪a⟫ = ne Γ⊢ᵉ⟪a⟫

@@ -56,9 +56,9 @@ record Kripke : Set₁ where
     K : Set
     _≤_ : K → K → Set
     ≤-refl : {w : K} → w ≤ w
-    ≤-trans : {w₁ w₂ w₃ : K} → w₁ ≤ w₂ → w₂ ≤ w₃ → w₁ ≤ w₃
+    _●_ : {w w′ w′′ : K} → w ≤ w′ → w′ ≤ w′′ → w ≤ w′′
     _⊩ᵃ_ : K → Proposition → Set
-    ⊩ᵃ-≤ : {P : Proposition} {w₁ w₂ : K} → w₁ ≤ w₂ → w₁ ⊩ᵃ P → w₂ ⊩ᵃ P
+    ⊩ᵃ-≤ : {P : Proposition} {w w′ : K} → w ≤ w′ → w ⊩ᵃ P → w′ ⊩ᵃ P
 
 module Soundness (kripke : Kripke) where
 
@@ -72,7 +72,7 @@ module Soundness (kripke : Kripke) where
   ⊩-≤ : ∀ p {w w′ : K} → w ≤ w′ → w ⊩ p → w′ ⊩ p
   ⊩-≤ ⟪ a ⟫ = ⊩ᵃ-≤
   ⊩-≤ (p ⊃ q) w≤w′ w⊩p⊃q w′≤w′′ =
-    w⊩p⊃q (≤-trans w≤w′ w′≤w′′)
+    w⊩p⊃q (w≤w′ ● w′≤w′′)
   ⊩-≤ (p ∧ q) w≤w′ =
     Prod.map (⊩-≤ p w≤w′) (⊩-≤ q w≤w′)
 
@@ -119,7 +119,7 @@ module Completeness where
   uks = record { K = List Formula;
                  _≤_ = _≼_;
                  ≤-refl = ≼-refl;
-                 ≤-trans = ≼-trans;
+                 _●_ = ≼-trans;
                  _⊩ᵃ_ = λ Γ a → Γ ⊢ ⟪ a ⟫;
                  ⊩ᵃ-≤ = ⊢-≼ }
 

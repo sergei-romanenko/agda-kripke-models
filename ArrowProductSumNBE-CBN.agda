@@ -1,4 +1,4 @@
-module ArrowProductSum-CBN (Proposition : Set) where
+module ArrowProductSumNBE-CBN (Proposition : Set) where
 
 open import Data.List
 open import Data.Unit
@@ -36,6 +36,25 @@ data _⊢_ : List Formula → Formula → Set where
   inr : ∀ {Γ p q} → Γ ⊢ q → Γ ⊢ (p ∨ q)
   case : ∀ {Γ p q r} → Γ ⊢ (p ∨ q) → (p ∷ Γ) ⊢ r → (q ∷ Γ) ⊢ r → Γ ⊢ r
 
+-- Target language: natural deduction allowing only beta-normal forms
+
+mutual
+
+  data _⊢ʳ_ : List Formula → Formula → Set where
+    ne : ∀ {Γ p} → Γ ⊢ᵉ p → Γ ⊢ʳ p
+    lam : ∀ {Γ p q} → (p ∷ Γ) ⊢ʳ q → Γ ⊢ʳ (p ⊃ q)
+    pair : ∀ {Γ p q} → Γ ⊢ʳ p → Γ ⊢ʳ q → Γ ⊢ʳ (p ∧ q)
+    inl : ∀ {Γ p q} → Γ ⊢ʳ p → Γ ⊢ʳ (p ∨ q)
+    inr : ∀ {Γ p q} → Γ ⊢ʳ q → Γ ⊢ʳ (p ∨ q)
+
+  data _⊢ᵉ_ : List Formula → Formula → Set where
+    hyp : ∀ {Γ p} → (p ∷ Γ) ⊢ᵉ p
+    wkn : ∀ {Γ p q} → Γ ⊢ʳ p → (q ∷ Γ) ⊢ᵉ p
+    app : ∀ {Γ p q} → Γ ⊢ᵉ (p ⊃ q) → Γ ⊢ʳ p → Γ ⊢ᵉ q
+    fst : ∀ {Γ p q} → Γ ⊢ᵉ (p ∧ q) → Γ ⊢ᵉ p
+    snd : ∀ {Γ p q} → Γ ⊢ᵉ (p ∧ q) → Γ ⊢ᵉ q
+    case : ∀ {Γ p q r} → Γ ⊢ᵉ (p ∨ q) → (p ∷ Γ) ⊢ʳ r → (q ∷ Γ) ⊢ʳ r → Γ ⊢ᵉ r
+
 module SampleProofs (a b c : Formula) where
 
   a⊃a : [] ⊢ (a ⊃ a)
@@ -60,6 +79,31 @@ module SampleProofs (a b c : Formula) where
   [a∨b]⊃[a⊃c]⊃[b⊃c]⊃c =
     lam (lam (lam
       (case (wkn (wkn hyp)) (app (wkn (wkn hyp)) hyp) (app (wkn hyp) hyp))))
+
+module SampleProofsR (a b c : Formula) where
+
+  a⊃a : [] ⊢ʳ (a ⊃ a)
+  a⊃a = lam (ne hyp)
+
+  a-b-a : [] ⊢ʳ (a ⊃ (b ⊃ a))
+  a-b-a = lam (lam (ne (wkn (ne hyp))))
+
+  a-ab-b : [] ⊢ʳ (a ⊃ ((a ⊃ b) ⊃ b))
+  a-ab-b = lam (lam (ne (app hyp (ne (wkn (ne hyp))))))
+
+  a∧b⊃b∧a : [] ⊢ ((a ∧ b) ⊃ (b ∧ a))
+  a∧b⊃b∧a = lam (pair (snd hyp) (fst hyp))
+
+  ∧-assoc : [] ⊢ʳ (((a ∧ b) ∧ c) ⊃ (a ∧ (b ∧ c)))
+  ∧-assoc = lam (pair (ne (fst (fst hyp)))
+                      (pair (ne (snd (fst hyp))) (ne (snd hyp))))
+
+  [a∨b]⊃[a⊃c]⊃[b⊃c]⊃c : [] ⊢ʳ ((a ∨ b) ⊃ ((a ⊃ c) ⊃ ((b ⊃ c) ⊃ c)))
+  [a∨b]⊃[a⊃c]⊃[b⊃c]⊃c =
+    lam (lam (lam
+      (ne (case (wkn (ne (wkn (ne hyp))))
+                (ne (app (wkn (ne (wkn (ne hyp)))) (ne hyp)))
+                (ne (app (wkn (ne hyp)) (ne hyp)))))))
 
 -- Worlds (Kripke structures)
 
@@ -90,6 +134,10 @@ module Soundness (kripke : Kripke) where
       (∀ {w′′} → w′ ≤ w′′ → w′′ ⊩ˢ p → w′′ ⊩ᵃ r) →
       w′ ⊩ᵃ r
 
+  _⊪_ : K → List Formula → Set
+  w ⊪ [] = ⊤
+  w ⊪ (p ∷ Γ) = (w ⊩ p) × (w ⊪ Γ)
+
   ⊩-≤ : ∀ p {w w′ : K} → w ≤ w′ → w ⊩ p → w′ ⊩ p
   ⊩-≤ p w≤w′ w⊩p r w′≤w′′ k = w⊩p r (w≤w′ ● w′≤w′′) k
 
@@ -101,10 +149,6 @@ module Soundness (kripke : Kripke) where
     Prod.map (⊩-≤ p w≤w′) (⊩-≤ q w≤w′)
   ⊩ˢ-≤ (p ∨ q) w≤w′ =
     Sum.map (⊩-≤ p w≤w′) (⊩-≤ q w≤w′)
-
-  _⊪_ : K → List Formula → Set
-  w ⊪ [] = ⊤
-  w ⊪ (p ∷ Γ) = (w ⊩ p) × (w ⊪ Γ)
 
   ⊪-≤ : ∀ Γ {w w′ : K} → w ≤ w′ → w ⊪ Γ → w′ ⊪ Γ
   ⊪-≤ [] w≤w′ tt = tt
@@ -156,24 +200,28 @@ module Completeness where
   ≼-trans Γ≼Γ′ ≼-refl = Γ≼Γ′
   ≼-trans Γ≼Γ′ (≼-cons Γ′≼Γ′′) = ≼-cons (≼-trans Γ≼Γ′ Γ′≼Γ′′)
 
-  ⊢-≼ : ∀ {p Γ Γ′} → Γ ≼ Γ′ → Γ ⊢ p → Γ′ ⊢ p
-  ⊢-≼ ≼-refl Γ′⊢p = Γ′⊢p
-  ⊢-≼ (≼-cons Γ≼Γ′) Γ⊢p = wkn (⊢-≼ Γ≼Γ′ Γ⊢p)
+  ⊢ᵉ-≼ : ∀ {p Γ Γ′} → Γ ≼ Γ′ → Γ ⊢ᵉ p → Γ′ ⊢ᵉ p
+  ⊢ᵉ-≼ ≼-refl Γ′⊢ᵉp = Γ′⊢ᵉp
+  ⊢ᵉ-≼ (≼-cons Γ≼Γ′) Γ⊢ᵉp = wkn (ne (⊢ᵉ-≼ Γ≼Γ′ Γ⊢ᵉp))
+
+  ⊢ʳ-≼ : ∀ {p Γ Γ′} → Γ ≼ Γ′ → Γ ⊢ʳ p → Γ′ ⊢ʳ p
+  ⊢ʳ-≼ ≼-refl Γ⊢ʳp = Γ⊢ʳp
+  ⊢ʳ-≼ (≼-cons Γ≼Γ′) Γ⊢ʳp = ne (wkn (⊢ʳ-≼ Γ≼Γ′ Γ⊢ʳp))
 
   uks : Kripke
   uks = record { K = List Formula;
                  _≤_ = _≼_;
                  ≤-refl = ≼-refl;
                  _●_ = ≼-trans;
-                 _⊩ᵃ_ = _⊢_;
-                 ⊩ᵃ-≤ = ⊢-≼ }
+                 _⊩ᵃ_ = _⊢ʳ_;
+                 ⊩ᵃ-≤ = ⊢ʳ-≼ }
 
   open Kripke uks
   open Soundness uks
 
   mutual
 
-    reify : ∀ {Γ} p → Γ ⊩ p → Γ ⊢ p
+    reify : ∀ {Γ} p → Γ ⊩ p → Γ ⊢ʳ p
     reify ⟪ a ⟫ Γ⊩⟪a⟫ =
       Γ⊩⟪a⟫ ⟪ a ⟫ ≼-refl (λ Γ≼Γ′ Γ′⊩ᵃ⟪a⟫ → Γ′⊩ᵃ⟪a⟫)
     reify (p ⊃ q) Γ⊩p⊃q =
@@ -187,25 +235,25 @@ module Completeness where
       Γ⊩p∨q (p ∨ q) ≼-refl (λ Γ≼Γ′ →
         [ (λ Γ′⊩p → inl (reify p Γ′⊩p)) , (λ Γ′⊩q → inr (reify q Γ′⊩q)) ]′)
 
-    reflect : ∀ {Γ} p → Γ ⊢ p → Γ ⊩ p
-    reflect ⟪ a ⟫ Γ⊢⟪a⟫ r Γ≼Γ′ k =
-      k ≼-refl (⊢-≼ Γ≼Γ′ Γ⊢⟪a⟫)
-    reflect (p ⊃ q) Γ⊢p⊃q r Γ≼Γ′ k =
+    reflect : ∀ {Γ} p → Γ ⊢ᵉ p → Γ ⊩ p
+    reflect ⟪ a ⟫ Γ⊢ᵉ⟪p⟫ r Γ≼Γ′ k =
+      k ≼-refl (ne (⊢ᵉ-≼ Γ≼Γ′ Γ⊢ᵉ⟪p⟫))
+    reflect (p ⊃ q) Γ⊢ᵉp⊃q r Γ≼Γ′ k =
       k ≼-refl (λ Γ′≼Γ′′ Γ′′⊩p →
-        reflect q (app (⊢-≼ (Γ≼Γ′ ● Γ′≼Γ′′) Γ⊢p⊃q) (reify p Γ′′⊩p)))
-    reflect (p ∧ q) Γ⊢p∧q r Γ≼Γ′ k =
+        reflect q (app (⊢ᵉ-≼ (Γ≼Γ′ ● Γ′≼Γ′′) Γ⊢ᵉp⊃q) (reify p Γ′′⊩p)))
+    reflect (p ∧ q) Γ⊢ᵉp∧q r Γ≼Γ′ k =
       k ≼-refl
-        (reflect p (fst Γ′⊢p∧q) , reflect q (snd Γ′⊢p∧q))
-      where Γ′⊢p∧q = ⊢-≼ Γ≼Γ′ Γ⊢p∧q
-    reflect (p ∨ q) Γ⊢p∨q r {Γ′} Γ≼Γ′ k =
-      case (⊢-≼ Γ≼Γ′ Γ⊢p∨q)
-          (k (≼-cons ≼-refl) (inj₁ (reflect p hyp)))
-          (k (≼-cons ≼-refl) (inj₂ (reflect q hyp)))
+        (reflect p (fst Γ′⊢ᵉp∧q) , reflect q (snd Γ′⊢ᵉp∧q))
+      where Γ′⊢ᵉp∧q = ⊢ᵉ-≼ Γ≼Γ′ Γ⊢ᵉp∧q
+    reflect (p ∨ q) Γ⊢ᵉp∨q r {Γ′} Γ≼Γ′ k =
+      ne (case (⊢ᵉ-≼ Γ≼Γ′ Γ⊢ᵉp∨q)
+               (k (≼-cons ≼-refl) (inj₁ (reflect p hyp)))
+               (k (≼-cons ≼-refl) (inj₂ (reflect q hyp))))
 
   reflect-context : (Γ : List Formula) → Γ ⊪ Γ
   reflect-context [] = tt
   reflect-context (p ∷ Γ) =
     reflect p hyp , ⊪-≤ Γ (≼-cons ≼-refl) (reflect-context Γ)
 
-  nbe : ∀ {Γ p} → Γ ⊢ p → Γ ⊢ p
+  nbe : ∀ {Γ p} → Γ ⊢ p → Γ ⊢ʳ p
   nbe {Γ} {p} Γ⊢p = reify p (soundness Γ⊢p (reflect-context Γ))
