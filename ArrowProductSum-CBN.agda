@@ -90,6 +90,10 @@ module Soundness (kripke : Kripke) where
       (∀ {w′′} → w′ ≤ w′′ → w′′ ⊩ˢ p → w′′ ⊩ᵃ r) →
       w′ ⊩ᵃ r
 
+  _⊪_ : K → List Formula → Set
+  w ⊪ [] = ⊤
+  w ⊪ (p ∷ Γ) = (w ⊩ p) × (w ⊪ Γ)
+
   ⊩-≤ : ∀ p {w w′ : K} → w ≤ w′ → w ⊩ p → w′ ⊩ p
   ⊩-≤ p w≤w′ w⊩p r w′≤w′′ k = w⊩p r (w≤w′ ● w′≤w′′) k
 
@@ -101,10 +105,6 @@ module Soundness (kripke : Kripke) where
     Prod.map (⊩-≤ p w≤w′) (⊩-≤ q w≤w′)
   ⊩ˢ-≤ (p ∨ q) w≤w′ =
     Sum.map (⊩-≤ p w≤w′) (⊩-≤ q w≤w′)
-
-  _⊪_ : K → List Formula → Set
-  w ⊪ [] = ⊤
-  w ⊪ (p ∷ Γ) = (w ⊩ p) × (w ⊪ Γ)
 
   ⊪-≤ : ∀ Γ {w w′ : K} → w ≤ w′ → w ⊪ Γ → w′ ⊪ Γ
   ⊪-≤ [] w≤w′ tt = tt
@@ -209,3 +209,25 @@ module Completeness where
 
   nbe : ∀ {Γ p} → Γ ⊢ p → Γ ⊢ p
   nbe {Γ} {p} Γ⊢p = reify p (soundness Γ⊢p (reflect-context Γ))
+
+module NBE-Samples (a b c d : Proposition) where
+
+  open Completeness
+
+  id-id : [] ⊢ (⟪ a ⟫ ⊃ ⟪ a ⟫)
+  id-id = app (lam hyp) (lam hyp)
+
+  nbe-id-id : nbe id-id ≡ lam hyp
+  nbe-id-id = refl
+
+  fst-pair : [] ⊢ (⟪ a ⟫ ⊃ (⟪ b ⟫ ⊃ ⟪ a ⟫))
+  fst-pair = lam (lam (fst (pair (wkn hyp) hyp)))
+
+  nbe-fst-pair : nbe fst-pair ≡ lam (lam (wkn hyp))
+  nbe-fst-pair = refl
+
+  case-inl : [] ⊢ (⟪ a ⟫ ⊃ ⟪ a ⟫)
+  case-inl = lam (case (inl hyp) hyp hyp)
+
+  nbe-case-inl : nbe case-inl ≡ lam hyp
+  nbe-case-inl = refl

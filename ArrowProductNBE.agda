@@ -188,3 +188,19 @@ module Completeness where
 
   nbe : ∀ {Γ p} → Γ ⊢ p → Γ ⊢ʳ p
   nbe {Γ} {p} Γ⊢p = reify p (soundness Γ⊢p (reflect-context Γ))
+
+module NBE-Samples (a b : Proposition) where
+
+  open Completeness
+
+  id-id : [] ⊢ (⟪ a ⟫ ⊃ ⟪ a ⟫)
+  id-id = app (lam hyp) (lam hyp)
+
+  nbe-id-id : nbe id-id ≡ lam (ne hyp)
+  nbe-id-id = refl
+
+  fst-pair : [] ⊢ (⟪ a ⟫ ⊃ (⟪ b ⟫ ⊃ ⟪ a ⟫))
+  fst-pair = lam (lam (fst (pair (wkn hyp) hyp)))
+
+  nbe-fst-pair : nbe fst-pair ≡ lam (lam (ne (wkn (ne hyp))))
+  nbe-fst-pair = refl
