@@ -112,7 +112,7 @@ record Kripke : Set₁ where
     K : Set
     _≤_ : K → K → Set
     ≤-refl : {w : K} → w ≤ w
-    _●_ : {w w′ w′′ : K} → w ≤ w′ → w′ ≤ w′′ → w ≤ w′′
+    _⊙_ : {w w′ w′′ : K} → w ≤ w′ → w′ ≤ w′′ → w ≤ w′′
     _⊩ᵃ_ : K → Formula → Set
     ⊩ᵃ-≤ : {a : Proposition} {w w′ : K} → w ≤ w′ → w ⊩ᵃ ⟪ a ⟫ → w′ ⊩ᵃ ⟪ a ⟫
 
@@ -139,12 +139,12 @@ module Soundness (kripke : Kripke) where
   w ⊪ (p ∷ Γ) = (w ⊩ p) × (w ⊪ Γ)
 
   ⊩-≤ : ∀ p {w w′ : K} → w ≤ w′ → w ⊩ p → w′ ⊩ p
-  ⊩-≤ p w≤w′ w⊩p r w′≤w′′ k = w⊩p r (w≤w′ ● w′≤w′′) k
+  ⊩-≤ p w≤w′ w⊩p r w′≤w′′ k = w⊩p r (w≤w′ ⊙ w′≤w′′) k
 
   ⊩ˢ-≤ : ∀ p {w w′ : K} → w ≤ w′ → w ⊩ˢ p → w′ ⊩ˢ p
   ⊩ˢ-≤ ⟪ a ⟫ = ⊩ᵃ-≤
   ⊩ˢ-≤ (p ⊃ q) w≤w′ w⊩ˢp⊃q w′≤w′′ =
-    w⊩ˢp⊃q (w≤w′ ● w′≤w′′)
+    w⊩ˢp⊃q (w≤w′ ⊙ w′≤w′′)
   ⊩ˢ-≤ (p ∧ q) w≤w′ =
     Prod.map (⊩-≤ p w≤w′) (⊩-≤ q w≤w′)
   ⊩ˢ-≤ (p ∨ q) w≤w′ =
@@ -162,8 +162,8 @@ module Soundness (kripke : Kripke) where
   bind : ∀ p q {w} → w ⊩ p → (∀ {w′} → w ≤ w′ → w′ ⊩ˢ p → w′ ⊩ q) → w ⊩ q
   bind p q w⊩p k r w≤w′ k′ =
     w⊩p r w≤w′
-      (λ w′≤w′′ w′′⊩ˢp → k (w≤w′ ● w′≤w′′) w′′⊩ˢp r ≤-refl
-        (λ w′′≤w′′′ → k′ (w′≤w′′ ● w′′≤w′′′)))
+      (λ w′≤w′′ w′′⊩ˢp → k (w≤w′ ⊙ w′≤w′′) w′′⊩ˢp r ≤-refl
+        (λ w′′≤w′′′ → k′ (w′≤w′′ ⊙ w′′≤w′′′)))
 
   soundness : ∀ {Γ p} → Γ ⊢ p → {w : K} → w ⊪ Γ → w ⊩ p
   soundness hyp (w⊩p , w⊪Γ) =
@@ -212,7 +212,7 @@ module Completeness where
   uks = record { K = List Formula;
                  _≤_ = _≼_;
                  ≤-refl = ≼-refl;
-                 _●_ = ≼-trans;
+                 _⊙_ = ≼-trans;
                  _⊩ᵃ_ = _⊢ʳ_;
                  ⊩ᵃ-≤ = ⊢ʳ-≼ }
 
@@ -240,7 +240,7 @@ module Completeness where
       k ≼-refl (ne (⊢ᵉ-≼ Γ≼Γ′ Γ⊢ᵉ⟪p⟫))
     reflect (p ⊃ q) Γ⊢ᵉp⊃q r Γ≼Γ′ k =
       k ≼-refl (λ Γ′≼Γ′′ Γ′′⊩p →
-        reflect q (app (⊢ᵉ-≼ (Γ≼Γ′ ● Γ′≼Γ′′) Γ⊢ᵉp⊃q) (reify p Γ′′⊩p)))
+        reflect q (app (⊢ᵉ-≼ (Γ≼Γ′ ⊙ Γ′≼Γ′′) Γ⊢ᵉp⊃q) (reify p Γ′′⊩p)))
     reflect (p ∧ q) Γ⊢ᵉp∧q r Γ≼Γ′ k =
       k ≼-refl
         (reflect p (fst Γ′⊢ᵉp∧q) , reflect q (snd Γ′⊢ᵉp∧q))

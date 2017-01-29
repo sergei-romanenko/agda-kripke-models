@@ -68,7 +68,7 @@ record Kripke : Set₁ where
     K : Set
     _≤_ : K → K → Set
     ≤-refl : {w : K} → w ≤ w
-    _●_ : {w w′ w′′ : K} → w ≤ w′ → w′ ≤ w′′ → w ≤ w′′
+    _⊙_ : {w w′ w′′ : K} → w ≤ w′ → w′ ≤ w′′ → w ≤ w′′
     _⊩ᵃ_ : K → Formula → Set
     ⊩ᵃ-≤ : {a : Proposition} {w w′ : K} → w ≤ w′ → w ⊩ᵃ ⟪ a ⟫ → w′ ⊩ᵃ ⟪ a ⟫
 
@@ -95,12 +95,12 @@ module Soundness (kripke : Kripke) where
   w ⊪ (p ∷ Γ) = (w ⊩ p) × (w ⊪ Γ)
 
   ⊩-≤ : ∀ p {w w′ : K} → w ≤ w′ → w ⊩ p → w′ ⊩ p
-  ⊩-≤ p w≤w′ w⊩p r w′≤w′′ k = w⊩p r (w≤w′ ● w′≤w′′) k
+  ⊩-≤ p w≤w′ w⊩p r w′≤w′′ k = w⊩p r (w≤w′ ⊙ w′≤w′′) k
 
   ⊩ˢ-≤ : ∀ p {w w′ : K} → w ≤ w′ → w ⊩ˢ p → w′ ⊩ˢ p
   ⊩ˢ-≤ ⟪ a ⟫ = ⊩ᵃ-≤
   ⊩ˢ-≤ (p ⊃ q) w≤w′ w⊩ˢp⊃q w′≤w′′ =
-    w⊩ˢp⊃q (w≤w′ ● w′≤w′′)
+    w⊩ˢp⊃q (w≤w′ ⊙ w′≤w′′)
   ⊩ˢ-≤ (p ∧ q) w≤w′ =
     Prod.map (⊩-≤ p w≤w′) (⊩-≤ q w≤w′)
   ⊩ˢ-≤ (p ∨ q) w≤w′ =
@@ -115,11 +115,11 @@ module Soundness (kripke : Kripke) where
   return p w⊩ˢp r w≤w′ k =
     k ≤-refl (⊩ˢ-≤ p w≤w′ w⊩ˢp)
 
-  bind : ∀ p q {w} → w ⊩ p → (∀ {w′} → w ≤ w′ → w′ ⊩ˢ p → w′ ⊩ q) → w ⊩ q
-  bind p q w⊩p k r w≤w′ k′ =
-    w⊩p r w≤w′
-      (λ w′≤w′′ w′′⊩ˢp → k (w≤w′ ● w′≤w′′) w′′⊩ˢp r ≤-refl
-        (λ w′′≤w′′′ → k′ (w′≤w′′ ● w′′≤w′′′)))
+  bind : ∀ p r {w} → w ⊩ p → (∀ {w′} → w ≤ w′ → w′ ⊩ˢ p → w′ ⊩ r) → w ⊩ r
+  bind p r w⊩p k r′ w≤w′ k′ =
+    w⊩p r′ w≤w′
+      (λ w′≤w′′ w′′⊩ˢp → k (w≤w′ ⊙ w′≤w′′) w′′⊩ˢp r′ ≤-refl
+        (λ w′′≤w′′′ → k′ (w′≤w′′ ⊙ w′′≤w′′′)))
 
   soundness : ∀ {Γ p} → Γ ⊢ p → {w : K} → w ⊪ Γ → w ⊩ p
   soundness hyp (w⊩p , w⊪Γ) =
@@ -164,7 +164,7 @@ module Completeness where
   uks = record { K = List Formula;
                  _≤_ = _≼_;
                  ≤-refl = ≼-refl;
-                 _●_ = ≼-trans;
+                 _⊙_ = ≼-trans;
                  _⊩ᵃ_ = _⊢_;
                  ⊩ᵃ-≤ = ⊢-≼ }
 
@@ -192,7 +192,7 @@ module Completeness where
       k ≼-refl (⊢-≼ Γ≼Γ′ Γ⊢⟪a⟫)
     reflect (p ⊃ q) Γ⊢p⊃q r Γ≼Γ′ k =
       k ≼-refl (λ Γ′≼Γ′′ Γ′′⊩p →
-        reflect q (app (⊢-≼ (Γ≼Γ′ ● Γ′≼Γ′′) Γ⊢p⊃q) (reify p Γ′′⊩p)))
+        reflect q (app (⊢-≼ (Γ≼Γ′ ⊙ Γ′≼Γ′′) Γ⊢p⊃q) (reify p Γ′′⊩p)))
     reflect (p ∧ q) Γ⊢p∧q r Γ≼Γ′ k =
       k ≼-refl
         (reflect p (fst Γ′⊢p∧q) , reflect q (snd Γ′⊢p∧q))
