@@ -1,4 +1,4 @@
-module ArrowProduct (Proposition : Set) where
+module ArrowProduct where
 
 open import Data.List
 open import Data.Unit
@@ -6,6 +6,7 @@ open import Data.Unit
 open import Data.Empty
 open import Data.Product as Prod
 open import Data.Sum as Sum
+open import Data.String using (String)
 
 open import Function
 
@@ -18,50 +19,68 @@ open ≡-Reasoning
 -- Syntax
 ----------
 
-data Formula : Set where
-  ⟪_⟫  : (a : Proposition) → Formula
-  _⊃_ : (p q : Formula) → Formula
-  _∧_ : (p q : Formula) → Formula
+module Logic (Proposition : Set) where
 
-data _⊢_ : List Formula → Formula → Set where
-  hyp : ∀ {Γ p} → (p ∷ Γ) ⊢ p
-  wkn : ∀ {Γ p q} → Γ ⊢ p → (q ∷ Γ) ⊢ p
-  lam  : ∀ {Γ p q} → (p ∷ Γ) ⊢ q → Γ ⊢ (p ⊃ q)
-  app  : ∀ {Γ p q} → Γ ⊢ (p ⊃ q) → Γ ⊢ p → Γ ⊢ q
-  pair : ∀ {Γ p q} → Γ ⊢ p → Γ ⊢ q → Γ ⊢ (p ∧ q)
-  fst : ∀ {Γ p q} → Γ ⊢ (p ∧ q) → Γ ⊢ p
-  snd : ∀ {Γ p q} → Γ ⊢ (p ∧ q) → Γ ⊢ q
+  data Formula : Set where
+    ⟪_⟫  : (a : Proposition) → Formula
+    _⊃_ : (p q : Formula) → Formula
+    _∧_ : (p q : Formula) → Formula
 
-module SampleProofs (a b c : Formula) where
+  data _⊢_ : List Formula → Formula → Set where
+    hyp : ∀ {Γ p} → (p ∷ Γ) ⊢ p
+    wkn : ∀ {Γ p q} → Γ ⊢ p → (q ∷ Γ) ⊢ p
+    lam  : ∀ {Γ p q} → (p ∷ Γ) ⊢ q → Γ ⊢ (p ⊃ q)
+    app  : ∀ {Γ p q} → Γ ⊢ (p ⊃ q) → Γ ⊢ p → Γ ⊢ q
+    pair : ∀ {Γ p q} → Γ ⊢ p → Γ ⊢ q → Γ ⊢ (p ∧ q)
+    fst : ∀ {Γ p q} → Γ ⊢ (p ∧ q) → Γ ⊢ p
+    snd : ∀ {Γ p q} → Γ ⊢ (p ∧ q) → Γ ⊢ q
 
-  a⊃a : [] ⊢ (a ⊃ a)
-  a⊃a = lam hyp
+module SampleProofs (p q r : Logic.Formula String) where
 
-  a-b-a : [] ⊢ (a ⊃ (b ⊃ a))
-  a-b-a = lam (lam (wkn hyp)) 
+  open Logic String
 
-  a-ab-b : [] ⊢ (a ⊃ ((a ⊃ b) ⊃ b))
-  a-ab-b = lam (lam (app hyp (wkn hyp)))
+  snd-wkn : (p ∷ (q ∧ r) ∷ []) ⊢ r
+  snd-wkn = snd (wkn hyp)
 
-  a∧b⊃b∧a : [] ⊢ ((a ∧ b) ⊃ (b ∧ a))
-  a∧b⊃b∧a = lam (pair (snd hyp) (fst hyp))
+  snd-wkn′ : (p ∷ (q ∧ r) ∷ []) ⊢ r
+  snd-wkn′ = wkn (snd hyp)
 
-  ∧-assoc : [] ⊢ (((a ∧ b) ∧ c) ⊃ (a ∧ (b ∧ c)))
+  p⊃p : [] ⊢ (p ⊃ p)
+  p⊃p = lam hyp
+
+  p-q-p : [] ⊢ (p ⊃ (q ⊃ p))
+  p-q-p = lam (lam (wkn hyp)) 
+
+  p-pq-q : [] ⊢ (p ⊃ ((p ⊃ q) ⊃ q))
+  p-pq-q = lam (lam (app hyp (wkn hyp)))
+
+  p∧q⊃q∧p : [] ⊢ ((p ∧ q) ⊃ (q ∧ p))
+  p∧q⊃q∧p = lam (pair (snd hyp) (fst hyp))
+
+  ∧-assoc : [] ⊢ (((p ∧ q) ∧ r) ⊃ (p ∧ (q ∧ r)))
   ∧-assoc = lam (pair (fst (fst hyp)) (pair (snd (fst hyp)) (snd hyp)))
+
+  ⊢p∧q₁ : (r ∷ p ∷ q ∷ []) ⊢ (p ∧ q)
+  ⊢p∧q₁ = pair (wkn hyp) (wkn (wkn hyp))
+
+  ⊢p∧q₂ : (r ∷ p ∷ q ∷ []) ⊢ (p ∧ q)
+  ⊢p∧q₂ = wkn (pair hyp (wkn hyp))
+
 
 -- Worlds (Kripke structures)
 
-record Kripke : Set₁ where
+record Kripke (Proposition : Set) : Set₁ where
   field
     K : Set
     _≤_ : K → K → Set
     ≤-refl : {w : K} → w ≤ w
     _⊙_ : {w w′ w′′ : K} → w ≤ w′ → w′ ≤ w′′ → w ≤ w′′
     _⊩ᵃ_ : K → Proposition → Set
-    ⊩ᵃ-≤ : {P : Proposition} {w w′ : K} → w ≤ w′ → w ⊩ᵃ P → w′ ⊩ᵃ P
+    ⊩ᵃ-≤ : {a : Proposition} {w w′ : K} → w ≤ w′ → w ⊩ᵃ a → w′ ⊩ᵃ a
 
-module Soundness (kripke : Kripke) where
+module Semantics (Proposition : Set) (kripke : Kripke Proposition) where
 
+  open Logic Proposition
   open Kripke kripke
 
   _⊩_ : K → Formula → Set
@@ -85,6 +104,12 @@ module Soundness (kripke : Kripke) where
   ⊪-≤ (p ∷ Γ) w≤w′ =
     Prod.map (⊩-≤ p w≤w′) (⊪-≤ Γ w≤w′)
 
+module Soundness (Proposition : Set) (kripke : Kripke Proposition) where
+
+  open Logic Proposition
+  open Kripke kripke
+  open Semantics Proposition kripke
+  
   soundness : ∀ {Γ p} → Γ ⊢ p → {w : K} → w ⊪ Γ → w ⊩ p
   soundness hyp w⊪p∷Γ =
     proj₁ w⊪p∷Γ
@@ -101,7 +126,9 @@ module Soundness (kripke : Kripke) where
   soundness (snd Γ⊢p∧q) w⊪Γ =
     proj₂ (soundness Γ⊢p∧q w⊪Γ)
 
-module Completeness where
+module Completeness (Proposition : Set) where
+
+  open Logic Proposition
 
   data _≼_ : (Γ Γ′ : List Formula) → Set where 
     ≼-refl : ∀ {Γ} → Γ ≼ Γ
@@ -115,7 +142,7 @@ module Completeness where
   ⊢-≼ ≼-refl Γ′⊢p = Γ′⊢p
   ⊢-≼ (≼-cons Γ≼Γ′) Γ⊢p = wkn (⊢-≼ Γ≼Γ′ Γ⊢p)
 
-  uks : Kripke
+  uks : Kripke Proposition
   uks = record { K = List Formula;
                  _≤_ = _≼_;
                  ≤-refl = ≼-refl;
@@ -124,7 +151,8 @@ module Completeness where
                  ⊩ᵃ-≤ = ⊢-≼ }
 
   open Kripke uks
-  open Soundness uks
+  open Semantics Proposition uks
+  open Soundness Proposition uks
 
   mutual
     reify : ∀ {Γ} p → Γ ⊩ p → Γ ⊢ p
@@ -149,9 +177,10 @@ module Completeness where
   nbe : ∀ {Γ p} → Γ ⊢ p → Γ ⊢ p
   nbe {Γ} {p} Γ⊢p = reify p (soundness Γ⊢p (reflect-context Γ))
 
-module NBE-Samples (a b : Proposition) where
+module NBE-Samples (Proposition : Set) (a b c : Proposition) where
 
-  open Completeness
+  open Logic Proposition
+  open Completeness Proposition
 
   id-id : [] ⊢ (⟪ a ⟫ ⊃ ⟪ a ⟫)
   id-id = app (lam hyp) (lam hyp)
@@ -164,3 +193,9 @@ module NBE-Samples (a b : Proposition) where
 
   nbe-fst-pair : nbe fst-pair ≡ lam (lam (wkn hyp))
   nbe-fst-pair = refl
+
+  ⊢a∧b : (⟪ c ⟫ ∷ ⟪ a ⟫ ∷ ⟪ b ⟫ ∷ []) ⊢ (⟪ a ⟫ ∧ ⟪ b ⟫)
+  ⊢a∧b = wkn (pair hyp (wkn hyp))
+
+  nbe-⊢a∧b : nbe ⊢a∧b ≡ pair (wkn hyp) (wkn (wkn hyp))
+  nbe-⊢a∧b = refl
