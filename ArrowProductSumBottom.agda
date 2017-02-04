@@ -25,7 +25,7 @@ module Logic (Proposition : Set) where
   infixr 4 _⊃_
   infixr 6 _∧_
   infixr 5 _∨_
-  infix 4 ~_
+  infix 7 ~_
 
   data Formula : Set where
     ⟪_⟫  : (a : Proposition) → Formula
@@ -71,33 +71,6 @@ module Logic (Proposition : Set) where
 
   efq′ : ∀ {Γ} p → Γ ⊢ 𝟘 → Γ ⊢ p
   efq′ p Γ⊢𝟘 = app (⊢𝟘⊃ p) Γ⊢𝟘
-
-module SampleProofs (p q r : Logic.Formula String) where
-
-  open Logic String
-
-  p⊃p : [] ⊢ p ⊃ p
-  p⊃p = lam hyp
-
-  p-q-p : [] ⊢ p ⊃ (q ⊃ p)
-  p-q-p = lam (lam (wkn hyp)) 
-
-  p-pq-q : [] ⊢ p ⊃ ((p ⊃ q) ⊃ q)
-  p-pq-q = lam (lam (app hyp (wkn hyp)))
-
-  p∧q⊃q∧p : [] ⊢ p ∧ q ⊃ q ∧ p
-  p∧q⊃q∧p = lam (pair (snd hyp) (fst hyp))
-
-  p∨q⊃q∨p : [] ⊢ ((p ∨ q) ⊃ (q ∨ p))
-  p∨q⊃q∨p = lam (case hyp (inr hyp) (inl hyp))
-
-  ∧-assoc : [] ⊢ (p ∧ q) ∧ r ⊃ p ∧ (q ∧ r)
-  ∧-assoc = lam (pair (fst (fst hyp)) (pair (snd (fst hyp)) (snd hyp)))
-
-  [p∨q]⊃[p⊃r]⊃[q⊃r]⊃r : [] ⊢ (p ∨ q) ⊃ (p ⊃ r) ⊃ (q ⊃ r) ⊃ r
-  [p∨q]⊃[p⊃r]⊃[q⊃r]⊃r =
-    lam (lam (lam
-      (case (wkn (wkn hyp)) (app (wkn (wkn hyp)) hyp) (app (wkn hyp) hyp))))
 
 -- Worlds (Kripke structures)
 
@@ -145,9 +118,9 @@ module Semantics (Proposition : Set) (kripke : Kripke Proposition) where
 
 module Soundness (Proposition : Set) (kripke : Kripke Proposition) where
 
-  open Logic Proposition
-  open Kripke kripke
-  open Semantics Proposition kripke
+  open Logic Proposition public
+  open Kripke kripke public
+  open Semantics Proposition kripke public
 
   soundness : ∀ {Γ p} → Γ ⊢ p → {w : K} → w ⊪ Γ → w ⊩ p
   soundness hyp w⊪p∷Γ =
@@ -173,3 +146,9 @@ module Soundness (Proposition : Set) (kripke : Kripke Proposition) where
       (λ w⊩q → soundness q∷Γ⊢r (w⊩q , w⊪Γ)) ]′
       (soundness Γ⊢p∨q w⊪Γ)
   soundness efq (() , w⊪Γ)
+
+  -- Syntactic deducibility
+
+  ¬deducible : ∀ w p → ¬ (w ⊩ p) → ¬ ([] ⊢ p)
+  ¬deducible w p ¬w⊩p []⊢p =
+    ¬w⊩p (soundness []⊢p tt)
