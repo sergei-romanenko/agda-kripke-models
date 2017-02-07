@@ -15,9 +15,7 @@ open import Relation.Binary.PropositionalEquality
 
 open ≡-Reasoning
 
-----------
 -- Syntax
-----------
 
 module Logic (Proposition : Set) where
 

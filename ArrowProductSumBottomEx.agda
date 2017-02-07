@@ -1,4 +1,4 @@
-module ArrowProductSumBottom-Examples where
+module ArrowProductSumBottomEx where
 
 open import Data.List
 open import Data.Unit
@@ -16,9 +16,9 @@ open import Relation.Binary.PropositionalEquality
 open import ArrowProductSumBottom
 
 
-module SampleProofs {-(p q r : Logic.Formula String)-} where
+module SampleProofs (Proposition : Set)  where
 
-  open Logic String
+  open Logic Proposition
 
   p⊃p : ∀ {p} → [] ⊢ p ⊃ p
   p⊃p = lam hyp

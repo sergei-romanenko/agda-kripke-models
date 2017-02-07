@@ -15,11 +15,13 @@ open import Relation.Binary.PropositionalEquality
 
 open ≡-Reasoning
 
-----------
 -- Syntax
-----------
 
 module Logic (Proposition : Set) where
+
+  infix 3 _⊢_
+  infixr 4 _⊃_
+  infixr 6 _∧_
 
   data Formula : Set where
     ⟪_⟫  : (a : Proposition) → Formula
@@ -27,45 +29,13 @@ module Logic (Proposition : Set) where
     _∧_ : (p q : Formula) → Formula
 
   data _⊢_ : List Formula → Formula → Set where
-    hyp : ∀ {Γ p} → (p ∷ Γ) ⊢ p
-    wkn : ∀ {Γ p q} → Γ ⊢ p → (q ∷ Γ) ⊢ p
-    lam  : ∀ {Γ p q} → (p ∷ Γ) ⊢ q → Γ ⊢ (p ⊃ q)
-    app  : ∀ {Γ p q} → Γ ⊢ (p ⊃ q) → Γ ⊢ p → Γ ⊢ q
-    pair : ∀ {Γ p q} → Γ ⊢ p → Γ ⊢ q → Γ ⊢ (p ∧ q)
-    fst : ∀ {Γ p q} → Γ ⊢ (p ∧ q) → Γ ⊢ p
-    snd : ∀ {Γ p q} → Γ ⊢ (p ∧ q) → Γ ⊢ q
-
-module SampleProofs (p q r : Logic.Formula String) where
-
-  open Logic String
-
-  snd-wkn : (p ∷ (q ∧ r) ∷ []) ⊢ r
-  snd-wkn = snd (wkn hyp)
-
-  snd-wkn′ : (p ∷ (q ∧ r) ∷ []) ⊢ r
-  snd-wkn′ = wkn (snd hyp)
-
-  p⊃p : [] ⊢ (p ⊃ p)
-  p⊃p = lam hyp
-
-  p-q-p : [] ⊢ (p ⊃ (q ⊃ p))
-  p-q-p = lam (lam (wkn hyp)) 
-
-  p-pq-q : [] ⊢ (p ⊃ ((p ⊃ q) ⊃ q))
-  p-pq-q = lam (lam (app hyp (wkn hyp)))
-
-  p∧q⊃q∧p : [] ⊢ ((p ∧ q) ⊃ (q ∧ p))
-  p∧q⊃q∧p = lam (pair (snd hyp) (fst hyp))
-
-  ∧-assoc : [] ⊢ (((p ∧ q) ∧ r) ⊃ (p ∧ (q ∧ r)))
-  ∧-assoc = lam (pair (fst (fst hyp)) (pair (snd (fst hyp)) (snd hyp)))
-
-  ⊢p∧q₁ : (r ∷ p ∷ q ∷ []) ⊢ (p ∧ q)
-  ⊢p∧q₁ = pair (wkn hyp) (wkn (wkn hyp))
-
-  ⊢p∧q₂ : (r ∷ p ∷ q ∷ []) ⊢ (p ∧ q)
-  ⊢p∧q₂ = wkn (pair hyp (wkn hyp))
-
+    hyp : ∀ {Γ p} → p ∷ Γ ⊢ p
+    wkn : ∀ {Γ p q} → Γ ⊢ p → q ∷ Γ ⊢ p
+    lam  : ∀ {Γ p q} → p ∷ Γ ⊢ q → Γ ⊢ p ⊃ q
+    app  : ∀ {Γ p q} → Γ ⊢ p ⊃ q → Γ ⊢ p → Γ ⊢ q
+    pair : ∀ {Γ p q} → Γ ⊢ p → Γ ⊢ q → Γ ⊢ p ∧ q
+    fst : ∀ {Γ p q} → Γ ⊢ p ∧ q → Γ ⊢ p
+    snd : ∀ {Γ p q} → Γ ⊢ p ∧ q → Γ ⊢ q
 
 -- Worlds (Kripke structures)
 
@@ -83,14 +53,16 @@ module Semantics (Proposition : Set) (kripke : Kripke Proposition) where
   open Logic Proposition
   open Kripke kripke
 
+  infix 3 _⊩_ _⊪_
+
   _⊩_ : K → Formula → Set
   w ⊩ ⟪ a ⟫ = w ⊩ᵃ a
-  w ⊩ (p ⊃ q) = {w′ : K} → w ≤ w′ → w′ ⊩ p → w′ ⊩ q
-  w ⊩ (p ∧ q) = (w ⊩ p) × (w ⊩ q)
+  w ⊩ p ⊃ q = {w′ : K} → w ≤ w′ → w′ ⊩ p → w′ ⊩ q
+  w ⊩ p ∧ q = w ⊩ p × w ⊩ q
 
   _⊪_ : K → List Formula → Set
   w ⊪ [] = ⊤
-  w ⊪ (p ∷ Γ) = (w ⊩ p) × (w ⊪ Γ)
+  w ⊪ (p ∷ Γ) = w ⊩ p × w ⊪ Γ
 
   ⊩-≤ : ∀ p {w w′ : K} → w ≤ w′ → w ⊩ p → w′ ⊩ p
   ⊩-≤ ⟪ a ⟫ = ⊩ᵃ-≤
@@ -125,6 +97,12 @@ module Soundness (Proposition : Set) (kripke : Kripke Proposition) where
     proj₁ (soundness Γ⊢p∧q w⊪Γ)
   soundness (snd Γ⊢p∧q) w⊪Γ =
     proj₂ (soundness Γ⊢p∧q w⊪Γ)
+
+  -- Syntactic deducibility
+
+  ¬deducible : ∀ w p → ¬ (w ⊩ p) → ¬ ([] ⊢ p)
+  ¬deducible w p ¬w⊩p []⊢p =
+    ¬w⊩p (soundness []⊢p tt)
 
 module Completeness (Proposition : Set) where
 
@@ -176,26 +154,3 @@ module Completeness (Proposition : Set) where
 
   nbe : ∀ {Γ p} → Γ ⊢ p → Γ ⊢ p
   nbe {Γ} {p} Γ⊢p = reify p (soundness Γ⊢p (reflect-context Γ))
-
-module NBE-Samples (Proposition : Set) (a b c : Proposition) where
-
-  open Logic Proposition
-  open Completeness Proposition
-
-  id-id : [] ⊢ (⟪ a ⟫ ⊃ ⟪ a ⟫)
-  id-id = app (lam hyp) (lam hyp)
-
-  nbe-id-id : nbe id-id ≡ lam hyp
-  nbe-id-id = refl
-
-  fst-pair : [] ⊢ (⟪ a ⟫ ⊃ (⟪ b ⟫ ⊃ ⟪ a ⟫))
-  fst-pair = lam (lam (fst (pair (wkn hyp) hyp)))
-
-  nbe-fst-pair : nbe fst-pair ≡ lam (lam (wkn hyp))
-  nbe-fst-pair = refl
-
-  ⊢a∧b : (⟪ c ⟫ ∷ ⟪ a ⟫ ∷ ⟪ b ⟫ ∷ []) ⊢ (⟪ a ⟫ ∧ ⟪ b ⟫)
-  ⊢a∧b = wkn (pair hyp (wkn hyp))
-
-  nbe-⊢a∧b : nbe ⊢a∧b ≡ pair (wkn hyp) (wkn (wkn hyp))
-  nbe-⊢a∧b = refl
