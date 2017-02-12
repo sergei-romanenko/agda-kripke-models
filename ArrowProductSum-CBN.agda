@@ -198,9 +198,10 @@ module Completeness where
         (reflect p (fst Γ′⊢p∧q) , reflect q (snd Γ′⊢p∧q))
       where Γ′⊢p∧q = ⊢-≼ Γ≼Γ′ Γ⊢p∧q
     reflect (p ∨ q) Γ⊢p∨q r {Γ′} Γ≼Γ′ k =
-      case (⊢-≼ Γ≼Γ′ Γ⊢p∨q)
+      case Γ′⊢p∨q
           (k (≼-cons ≼-refl) (inj₁ (reflect p hyp)))
           (k (≼-cons ≼-refl) (inj₂ (reflect q hyp)))
+      where Γ′⊢p∨q = ⊢-≼ Γ≼Γ′ Γ⊢p∨q
 
   reflect-context : (Γ : List Formula) → Γ ⊪ Γ
   reflect-context [] = tt

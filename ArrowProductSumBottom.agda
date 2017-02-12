@@ -50,25 +50,18 @@ module Logic (Proposition : Set) where
     inr : ∀ {Γ p q} → Γ ⊢ q → Γ ⊢ p ∨ q
     case : ∀ {Γ p q r} →
              Γ ⊢ (p ∨ q) → (p ∷ Γ) ⊢ r → (q ∷ Γ) ⊢ r → Γ ⊢ r
-    efq : ∀ {Γ a} → 𝟘 ∷ Γ ⊢ ⟪ a ⟫
+    abort : ∀ {Γ a} → Γ ⊢ 𝟘 → Γ ⊢ ⟪ a ⟫
 
-  𝟘∷⊢ : ∀ {Γ} p → 𝟘 ∷ Γ ⊢ p
-  𝟘∷⊢ ⟪ a ⟫ =
-    efq
-  𝟘∷⊢ (p ⊃ q) =
-    lam (wkn (𝟘∷⊢ q))
-  𝟘∷⊢ (p ∧ q) =
-    pair (𝟘∷⊢ p) (𝟘∷⊢ q)
-  𝟘∷⊢ (p ∨ q) =
-    inl (𝟘∷⊢ p)
-  𝟘∷⊢ 𝟘 =
-    hyp
-
-  ⊢𝟘⊃ : ∀ {Γ} p → Γ ⊢ 𝟘 ⊃ p
-  ⊢𝟘⊃ p = lam (𝟘∷⊢ p)
-
-  efq′ : ∀ {Γ} p → Γ ⊢ 𝟘 → Γ ⊢ p
-  efq′ p Γ⊢𝟘 = app (⊢𝟘⊃ p) Γ⊢𝟘
+  efq : ∀ {Γ p} → Γ ⊢ 𝟘 → Γ ⊢ p
+  efq {Γ} {⟪ a ⟫} Γ⊢𝟘 =
+    abort Γ⊢𝟘
+  efq {Γ} {p ⊃ q} Γ⊢𝟘 =
+    lam (wkn (efq Γ⊢𝟘))
+  efq {Γ} {p ∧ q} Γ⊢𝟘 =
+    pair (efq Γ⊢𝟘) (efq Γ⊢𝟘)
+  efq {Γ} {p ∨ q} Γ⊢𝟘 =
+    inl (efq Γ⊢𝟘)
+  efq {Γ} {𝟘} Γ⊢𝟘 = Γ⊢𝟘
 
 -- Worlds (Kripke structures)
 
@@ -139,11 +132,16 @@ module Soundness (Proposition : Set) (kripke : Kripke Proposition) where
     inj₁ (soundness Γ⊢p w⊪Γ)
   soundness (inr Γ⊢p) w⊪Γ =
     inj₂ (soundness Γ⊢p w⊪Γ)
-  soundness {Γ} {r} (case Γ⊢p∨q p∷Γ⊢r q∷Γ⊢r) w⊪Γ =
-    [ (λ w⊩p → soundness p∷Γ⊢r (w⊩p , w⊪Γ)) ,
-      (λ w⊩q → soundness q∷Γ⊢r (w⊩q , w⊪Γ)) ]′
-      (soundness Γ⊢p∨q w⊪Γ)
-  soundness efq (() , w⊪Γ)
+  -- soundness {Γ} {r} (case Γ⊢p∨q p∷Γ⊢r q∷Γ⊢r) w⊪Γ =
+  --   [ (λ w⊩p → soundness p∷Γ⊢r (w⊩p , w⊪Γ)) ,
+  --     (λ w⊩q → soundness q∷Γ⊢r (w⊩q , w⊪Γ)) ]′
+  --     (soundness Γ⊢p∨q w⊪Γ)
+  soundness {.Γ} {.r} (case {Γ} {p} {q} {r} Γ⊢p∨q p∷Γ⊢r q∷Γ⊢r) w⊪Γ
+    with soundness Γ⊢p∨q w⊪Γ
+  ... | inj₁ w⊩p = soundness p∷Γ⊢r (w⊩p , w⊪Γ)
+  ... | inj₂ w⊩q = soundness q∷Γ⊢r (w⊩q , w⊪Γ)
+  soundness (abort Γ⊢𝟘) w⊪Γ =
+    ⊥-elim (soundness Γ⊢𝟘 w⊪Γ)
 
   -- Syntactic deducibility
 

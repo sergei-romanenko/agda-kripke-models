@@ -20,28 +20,69 @@ module SampleProofs (Proposition : Set)  where
 
   open Logic Proposition
 
-  p⊃p : ∀ {p} → [] ⊢ p ⊃ p
-  p⊃p = lam hyp
+  ⊃-hyp : ∀ {p} → [] ⊢ p ⊃ p
+  ⊃-hyp = lam hyp
 
-  p-q-p : ∀ {p q} → [] ⊢ p ⊃ (q ⊃ p)
-  p-q-p = lam (lam (wkn hyp)) 
+  ⊃-wkn : ∀ {p q} → [] ⊢ p ⊃ q ⊃ p
+  ⊃-wkn = lam (lam (wkn hyp)) 
 
-  p-pq-q : ∀ {p q} → [] ⊢ p ⊃ ((p ⊃ q) ⊃ q)
-  p-pq-q = lam (lam (app hyp (wkn hyp)))
+  ⊃-cut : ∀ {p q r} → [] ⊢ (p ⊃ q ⊃ r) ⊃ (p ⊃ q) ⊃ p ⊃ r
+  ⊃-cut = lam (lam (lam (app (app (wkn (wkn hyp)) hyp) (app (wkn hyp) hyp))))
 
-  p∧q⊃q∧p : ∀ {p q} → [] ⊢ p ∧ q ⊃ q ∧ p
-  p∧q⊃q∧p = lam (pair (snd hyp) (fst hyp))
+  ∧-fst : ∀ {p q} → [] ⊢ p ∧ q ⊃ p
+  ∧-fst = lam (fst hyp)
 
-  p∨q⊃q∨p : ∀ {p q} → [] ⊢ ((p ∨ q) ⊃ (q ∨ p))
-  p∨q⊃q∨p = lam (case hyp (inr hyp) (inl hyp))
+  ∧-snd : ∀ {p q} → [] ⊢ p ∧ q ⊃ q
+  ∧-snd = lam (snd hyp)
+
+  ∧-pair : ∀ {p q} → [] ⊢ p ⊃ q ⊃ p ∧ q
+  ∧-pair = lam (lam (pair (wkn hyp) hyp))
+
+  ∨-inl : ∀ {p q} → [] ⊢ p ⊃ p ∨ q
+  ∨-inl = lam (inl hyp)
+
+  ∨-inr : ∀ {p q} → [] ⊢ q ⊃ p ∨ q
+  ∨-inr = lam (inr hyp)
+
+  ∨-case : ∀ {p q r} → [] ⊢ (p ⊃ r) ⊃ (q ⊃ r) ⊃ p ∨ q ⊃ r
+  ∨-case {p} {q} {r} = lam (lam (lam
+    (case hyp (app (wkn (wkn (wkn hyp))) hyp) (app (wkn (wkn hyp)) hyp))))
+
+  ~-efq : ∀ {p q} → [] ⊢ ~ p ⊃ p ⊃ q
+  -- (p ⊃ 𝟘) ⊃ p ⊃ q
+  ~-efq = lam (lam (efq (app (wkn hyp) hyp)))
+
+  ~-abs : ∀ {p q} → [] ⊢ (p ⊃ q) ⊃ (p ⊃ ~ q) ⊃ ~ p
+  -- (p ⊃ q) ⊃ (p ⊃ q ⊃ 𝟘) ⊃ p ⊃ 𝟘
+  ~-abs = lam (lam (lam (app (app (wkn hyp) hyp) (app (wkn (wkn hyp)) hyp))))
+
+  -- p ∨ ~ p is not derivable
+
+  ⊃-mp : ∀ {p q} → [] ⊢ p ⊃ (p ⊃ q) ⊃ q
+  ⊃-mp = lam (lam (app hyp (wkn hyp)))
+
+  ⊃-trans : ∀ {p q r} → [] ⊢ p ⊃ (p ⊃ q) ⊃ (q ⊃ r) ⊃ r
+  ⊃-trans = lam (lam (lam (app hyp (app (wkn hyp) (wkn (wkn hyp))))))
+
+  ∧-comm : ∀ {p q} → [] ⊢ p ∧ q ⊃ q ∧ p
+  ∧-comm = lam (pair (snd hyp) (fst hyp))
 
   ∧-assoc : ∀ {p q r} → [] ⊢ (p ∧ q) ∧ r ⊃ p ∧ (q ∧ r)
   ∧-assoc = lam (pair (fst (fst hyp)) (pair (snd (fst hyp)) (snd hyp)))
 
-  [p∨q]⊃[p⊃r]⊃[q⊃r]⊃r : ∀ {p q r} → [] ⊢ (p ∨ q) ⊃ (p ⊃ r) ⊃ (q ⊃ r) ⊃ r
-  [p∨q]⊃[p⊃r]⊃[q⊃r]⊃r =
-    lam (lam (lam
-      (case (wkn (wkn hyp)) (app (wkn (wkn hyp)) hyp) (app (wkn hyp) hyp))))
+  ∨-comm : ∀ {p q} → [] ⊢ p ∨ q ⊃ q ∨ p
+  ∨-comm = lam (case hyp (inr hyp) (inl hyp))
+
+  ∨-assoc : ∀ {p q r} → [] ⊢ (p ∨ q) ∨ r ⊃ p ∨ (q ∨ r)
+  ∨-assoc {p} {q} {r} =
+    lam (case hyp (case hyp (inl hyp) (inr (inl hyp))) (inr (inr hyp)))
+
+  {-
+  dn-tnd : ∀ {p} → [] ⊢ ~ ~ (p ∨ ~ p)
+  -- (p ∨ (p ⊃ 𝟘) ⊃ 𝟘) ⊃ 𝟘
+  dn-tnd {p} =
+    lam {!!}
+  -}
 
 module Example1 where
 
