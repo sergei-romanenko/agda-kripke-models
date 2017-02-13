@@ -48,16 +48,6 @@ module SampleProofs (Proposition : Set)  where
   ∨-case {p} {q} {r} = lam (lam (lam
     (case hyp (app (wkn (wkn (wkn hyp))) hyp) (app (wkn (wkn hyp)) hyp))))
 
-  ~-efq : ∀ {p q} → [] ⊢ ~ p ⊃ p ⊃ q
-  -- (p ⊃ 𝟘) ⊃ p ⊃ q
-  ~-efq = lam (lam (efq (app (wkn hyp) hyp)))
-
-  ~-abs : ∀ {p q} → [] ⊢ (p ⊃ q) ⊃ (p ⊃ ~ q) ⊃ ~ p
-  -- (p ⊃ q) ⊃ (p ⊃ q ⊃ 𝟘) ⊃ p ⊃ 𝟘
-  ~-abs = lam (lam (lam (app (app (wkn hyp) hyp) (app (wkn (wkn hyp)) hyp))))
-
-  -- p ∨ ~ p is not derivable
-
   ⊃-mp : ∀ {p q} → [] ⊢ p ⊃ (p ⊃ q) ⊃ q
   ⊃-mp = lam (lam (app hyp (wkn hyp)))
 
@@ -67,22 +57,113 @@ module SampleProofs (Proposition : Set)  where
   ∧-comm : ∀ {p q} → [] ⊢ p ∧ q ⊃ q ∧ p
   ∧-comm = lam (pair (snd hyp) (fst hyp))
 
-  ∧-assoc : ∀ {p q r} → [] ⊢ (p ∧ q) ∧ r ⊃ p ∧ (q ∧ r)
-  ∧-assoc = lam (pair (fst (fst hyp)) (pair (snd (fst hyp)) (snd hyp)))
+  ∧-assoc1 : ∀ {p q r} → [] ⊢ (p ∧ q) ∧ r ⊃ p ∧ (q ∧ r)
+  ∧-assoc1 =
+    lam (pair (fst (fst hyp)) (pair (snd (fst hyp)) (snd hyp)))
+
+  ∧-assoc2 : ∀ {p q r} → [] ⊢ p ∧ (q ∧ r) ⊃ (p ∧ q) ∧ r
+  ∧-assoc2 {p} {q} {r} =
+    lam (pair (pair (fst hyp) (fst (snd hyp))) (snd (snd hyp)))
 
   ∨-comm : ∀ {p q} → [] ⊢ p ∨ q ⊃ q ∨ p
   ∨-comm = lam (case hyp (inr hyp) (inl hyp))
 
-  ∨-assoc : ∀ {p q r} → [] ⊢ (p ∨ q) ∨ r ⊃ p ∨ (q ∨ r)
-  ∨-assoc {p} {q} {r} =
-    lam (case hyp (case hyp (inl hyp) (inr (inl hyp))) (inr (inr hyp)))
+  ∨-assoc1 : ∀ {p q r} → [] ⊢ (p ∨ q) ∨ r ⊃ p ∨ (q ∨ r)
+  ∨-assoc1 {p} {q} {r} =
+    lam (case hyp (case hyp (inl hyp) (inr (inl hyp)))
+                  (inr (inr hyp)))
 
-  {-
-  dn-tnd : ∀ {p} → [] ⊢ ~ ~ (p ∨ ~ p)
-  -- (p ∨ (p ⊃ 𝟘) ⊃ 𝟘) ⊃ 𝟘
+  ∨-assoc2 : ∀ {p q r} → [] ⊢ p ∨ (q ∨ r) ⊃ (p ∨ q) ∨ r
+  ∨-assoc2 {p} {q} {r} =
+    lam (case hyp (inl (inl hyp))
+                  (case hyp (inl (inr hyp)) (inr hyp)))
+
+  ∧∨-distr1 : ∀ {p q r} → [] ⊢ p ∧ (q ∨ r) ⊃ (p ∧ q) ∨ (p ∧ r)
+  ∧∨-distr1 =
+    lam (case (snd hyp) (inl (pair (wkn (fst hyp)) hyp))
+                        (inr (pair (wkn (fst hyp)) hyp)))
+
+  ∧∨-distr2 : ∀ {p q r} → [] ⊢ (p ∧ q) ∨ (p ∧ r) ⊃ p ∧ (q ∨ r)
+  ∧∨-distr2 =
+    lam (case hyp (pair (fst hyp) (inl (snd hyp)))
+                  (pair (fst hyp) (inr (snd hyp))))
+
+  ∨∧-distr1 : ∀ {p q r} → [] ⊢ p ∨ (q ∧ r) ⊃ (p ∨ q) ∧ (p ∨ r)
+  ∨∧-distr1 =
+    lam (case hyp (pair (inl hyp) (inl hyp))
+                  (pair (inr (fst hyp)) (inr (snd hyp))))
+
+  ∨∧-distr2 : ∀ {p q r} → [] ⊢ (p ∨ q) ∧ (p ∨ r) ⊃ p ∨ (q ∧ r)
+  ∨∧-distr2 =
+    lam (case (fst hyp) (inl hyp)
+              (case (snd (wkn hyp)) (inl hyp) (inr (pair (wkn hyp) hyp))))
+
+  ∨⊃-distr1 : ∀ {p q r} → [] ⊢ (p ∨ q ⊃ r) ⊃ (p ⊃ r) ∧ (q ⊃ r)
+  ∨⊃-distr1 =
+    lam (pair (lam (app (wkn hyp) (inl hyp)))
+              (lam (app (wkn hyp) (inr hyp))))
+
+  ∨⊃-distr2 : ∀ {p q r} → [] ⊢ (p ⊃ r) ∧ (q ⊃ r) ⊃ (p ∨ q ⊃ r)
+  ∨⊃-distr2 {p} {q} {r} =
+    lam (lam (case hyp (app (wkn (wkn (fst hyp))) hyp)
+                       (app (wkn (wkn (snd hyp))) hyp)))
+
+  -- Negation
+
+  -- ~ p ⊃ p ⊃ q
+  ~-efq : ∀ {p q} → [] ⊢ (p ⊃ 𝟘) ⊃ p ⊃ q
+  ~-efq = lam (lam (efq (app (wkn hyp) hyp)))
+
+  -- (p ⊃ q) ⊃ (p ⊃ ~ q) ⊃ ~ p
+  ~-abs : ∀ {p q} → [] ⊢ (p ⊃ q) ⊃ (p ⊃ q ⊃ 𝟘) ⊃ p ⊃ 𝟘
+  ~-abs = lam (lam (lam (app (app (wkn hyp) hyp) (app (wkn (wkn hyp)) hyp))))
+
+  -- (p ⊃ q) ⊃ (~ q ⊃ ~ p)
+  ~⊃~ : ∀ {p q} → [] ⊢ (p ⊃ q) ⊃ (q ⊃ 𝟘) ⊃ p ⊃ 𝟘
+  ~⊃~ = lam (lam (lam (app (wkn hyp) (app (wkn (wkn hyp)) hyp))))
+
+  -- p ⊃ ~ ~ p
+  ~~-intro : ∀ {p} → [] ⊢ p ⊃ (p ⊃ 𝟘) ⊃ 𝟘
+  ~~-intro = lam (lam (app hyp (wkn hyp)))
+
+  -- ~ ~ ~ p ⊂⊃ ~ p
+
+  -- ~ ~ ~ p ⊃ ~ p
+  ~~~-elim1 : ∀ {p} → [] ⊢ (((p ⊃ 𝟘) ⊃ 𝟘) ⊃ 𝟘) ⊃ p ⊃ 𝟘
+  ~~~-elim1 = lam (lam (app (wkn hyp) (lam (app hyp (wkn hyp)))))
+
+  -- ~ p ⊃ ~ ~ ~ p
+  ~~~-elim2 : ∀ {p} → [] ⊢ (p ⊃ 𝟘) ⊃ ((p ⊃ 𝟘) ⊃ 𝟘) ⊃ 𝟘
+  ~~~-elim2 = lam (lam (app hyp (wkn hyp)))
+
+  -- De Morgan's law: ~ (p ∨ q) ⊂⊃ ~ p ∧ ~ q
+
+  -- ~ (p ∨ q) ⊃ ~ p ∧ ~ q
+  ~∨-distr1 : ∀ {p q} → [] ⊢ (p ∨ q ⊃ 𝟘) ⊃ (p ⊃ 𝟘) ∧ (q ⊃ 𝟘)
+  ~∨-distr1 =
+    lam (pair (lam (app (wkn hyp) (inl hyp)))
+              (lam (app (wkn hyp) (inr hyp))))
+
+  -- ~ p ∧ ~ q ⊃ ~ (p ∨ q)
+  ~∨-distr2 : ∀ {p q} → [] ⊢ (p ⊃ 𝟘) ∧ (q ⊃ 𝟘) ⊃ p ∨ q ⊃ 𝟘
+  ~∨-distr2 =
+    lam (lam (case hyp (app (wkn (wkn (fst hyp))) hyp)
+                       (app (wkn (wkn (snd hyp))) hyp)))
+
+  -- p ∨ ~ p is not derivable, but
+  -- ~ ~ (p ∨ ~ p)
+  dn-tnd : ∀ {p} → [] ⊢ (p ∨ (p ⊃ 𝟘) ⊃ 𝟘) ⊃ 𝟘
   dn-tnd {p} =
-    lam {!!}
-  -}
+    lam (app hyp (inr (lam (app (wkn hyp) (inl hyp)))))
+
+  -- ~ ~ p ⊃ ~ ~ (p ⊃ q) ⊃ ~ ~ q
+  dn-⊃-mp : ∀ {p q} → [] ⊢
+    ((p ⊃ 𝟘) ⊃ 𝟘) ⊃ (((p ⊃ q) ⊃ 𝟘) ⊃ 𝟘) ⊃ (q ⊃ 𝟘) ⊃ 𝟘
+  dn-⊃-mp =
+    lam (lam (lam (app (wkn hyp)
+                       (lam (app (wkn (wkn (wkn hyp)))
+                                 (lam (app (wkn (wkn hyp))
+                                      (app (wkn hyp) hyp))))))))
 
 module Example1 where
 
