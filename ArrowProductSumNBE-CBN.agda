@@ -14,9 +14,7 @@ open import Relation.Binary.PropositionalEquality
 
 open ≡-Reasoning
 
-----------
 -- Syntax
-----------
 
 data Formula : Set where
   ⟪_⟫  : (a : Proposition) → Formula
@@ -109,12 +107,12 @@ module SampleProofsR (a b c : Formula) where
 
 record Kripke : Set₁ where
   field
-    K : Set
-    _≤_ : K → K → Set
-    ≤-refl : {w : K} → w ≤ w
-    _⊙_ : {w w′ w′′ : K} → w ≤ w′ → w′ ≤ w′′ → w ≤ w′′
-    _⊩ᵃ_ : K → Formula → Set
-    ⊩ᵃ-≤ : {a : Proposition} {w w′ : K} → w ≤ w′ → w ⊩ᵃ ⟪ a ⟫ → w′ ⊩ᵃ ⟪ a ⟫
+    World : Set
+    _≤_ : World → World → Set
+    ≤-refl : ∀ {w} → w ≤ w
+    _⊙_ : ∀ {w w′ w′′} → w ≤ w′ → w′ ≤ w′′ → w ≤ w′′
+    _⊩ᵃ_ : World → Formula → Set
+    ⊩ᵃ-≤ : ∀ {a w w′} → w ≤ w′ → w ⊩ᵃ ⟪ a ⟫ → w′ ⊩ᵃ ⟪ a ⟫
 
 module Soundness (kripke : Kripke) where
 
@@ -122,26 +120,25 @@ module Soundness (kripke : Kripke) where
 
   mutual
 
-    _⊩ˢ_ : K → Formula → Set
+    _⊩ˢ_ : World → Formula → Set
     w ⊩ˢ ⟪ a ⟫ = w ⊩ᵃ ⟪ a ⟫
-    w ⊩ˢ (p ⊃ q) = {w′ : K} → w ≤ w′ → w′ ⊩ p → w′ ⊩ q
+    w ⊩ˢ (p ⊃ q) = ∀ {w′} → w ≤ w′ → w′ ⊩ p → w′ ⊩ q
     w ⊩ˢ (p ∧ q) = (w ⊩ p) × (w ⊩ q)
     w ⊩ˢ (p ∨ q) = (w ⊩ p) ⊎ (w ⊩ q)
 
-    _⊩_ : K → Formula → Set
-    w ⊩ p = (r : Formula) →
-      ∀ {w′} → w ≤ w′ →
+    _⊩_ : World → Formula → Set
+    w ⊩ p = ∀ r {w′} → w ≤ w′ →
       (∀ {w′′} → w′ ≤ w′′ → w′′ ⊩ˢ p → w′′ ⊩ᵃ r) →
       w′ ⊩ᵃ r
 
-  _⊪_ : K → List Formula → Set
+  _⊪_ : World → List Formula → Set
   w ⊪ [] = ⊤
   w ⊪ (p ∷ Γ) = (w ⊩ p) × (w ⊪ Γ)
 
-  ⊩-≤ : ∀ p {w w′ : K} → w ≤ w′ → w ⊩ p → w′ ⊩ p
+  ⊩-≤ : ∀ p {w w′} → w ≤ w′ → w ⊩ p → w′ ⊩ p
   ⊩-≤ p w≤w′ w⊩p r w′≤w′′ k = w⊩p r (w≤w′ ⊙ w′≤w′′) k
 
-  ⊩ˢ-≤ : ∀ p {w w′ : K} → w ≤ w′ → w ⊩ˢ p → w′ ⊩ˢ p
+  ⊩ˢ-≤ : ∀ p {w w′} → w ≤ w′ → w ⊩ˢ p → w′ ⊩ˢ p
   ⊩ˢ-≤ ⟪ a ⟫ = ⊩ᵃ-≤
   ⊩ˢ-≤ (p ⊃ q) w≤w′ w⊩ˢp⊃q w′≤w′′ =
     w⊩ˢp⊃q (w≤w′ ⊙ w′≤w′′)
@@ -150,7 +147,7 @@ module Soundness (kripke : Kripke) where
   ⊩ˢ-≤ (p ∨ q) w≤w′ =
     Sum.map (⊩-≤ p w≤w′) (⊩-≤ q w≤w′)
 
-  ⊪-≤ : ∀ Γ {w w′ : K} → w ≤ w′ → w ⊪ Γ → w′ ⊪ Γ
+  ⊪-≤ : ∀ Γ {w w′} → w ≤ w′ → w ⊪ Γ → w′ ⊪ Γ
   ⊪-≤ [] w≤w′ tt = tt
   ⊪-≤ (p ∷ Γ) w≤w′ =
     Prod.map (⊩-≤ p w≤w′) (⊪-≤ Γ w≤w′)
@@ -165,7 +162,7 @@ module Soundness (kripke : Kripke) where
       (λ w′≤w′′ w′′⊩ˢp → k (w≤w′ ⊙ w′≤w′′) w′′⊩ˢp r ≤-refl
         (λ w′′≤w′′′ → k′ (w′≤w′′ ⊙ w′′≤w′′′)))
 
-  soundness : ∀ {Γ p} → Γ ⊢ p → {w : K} → w ⊪ Γ → w ⊩ p
+  soundness : ∀ {Γ p} → Γ ⊢ p → ∀ {w} → w ⊪ Γ → w ⊩ p
   soundness hyp (w⊩p , w⊪Γ) =
     w⊩p
   soundness (wkn Γ⊢p) (w⊩q , w⊪Γ) =
@@ -209,12 +206,14 @@ module Completeness where
   ⊢ʳ-≼ (≼-cons Γ≼Γ′) Γ⊢ʳp = ne (wkn (⊢ʳ-≼ Γ≼Γ′ Γ⊢ʳp))
 
   uks : Kripke
-  uks = record { K = List Formula;
-                 _≤_ = _≼_;
-                 ≤-refl = ≼-refl;
-                 _⊙_ = ≼-trans;
-                 _⊩ᵃ_ = _⊢ʳ_;
-                 ⊩ᵃ-≤ = ⊢ʳ-≼ }
+  uks = record
+    { World = List Formula
+    ; _≤_ = _≼_
+    ; ≤-refl = ≼-refl
+    ; _⊙_ = ≼-trans
+    ; _⊩ᵃ_ = _⊢ʳ_
+    ; ⊩ᵃ-≤ = ⊢ʳ-≼
+    }
 
   open Kripke uks
   open Soundness uks
@@ -236,19 +235,20 @@ module Completeness where
         [ (λ Γ′⊩p → inl (reify p Γ′⊩p)) , (λ Γ′⊩q → inr (reify q Γ′⊩q)) ]′)
 
     reflect : ∀ {Γ} p → Γ ⊢ᵉ p → Γ ⊩ p
-    reflect ⟪ a ⟫ Γ⊢ᵉ⟪p⟫ r Γ≼Γ′ k =
-      k ≼-refl (ne (⊢ᵉ-≼ Γ≼Γ′ Γ⊢ᵉ⟪p⟫))
+    reflect ⟪ a ⟫ Γ⊢ᵉ⟪a⟫ r Γ≼Γ′ k =
+      k ≼-refl (ne Γ′⊢ᵉ⟪a⟫)
+      where Γ′⊢ᵉ⟪a⟫ = ⊢ᵉ-≼ Γ≼Γ′ Γ⊢ᵉ⟪a⟫
     reflect (p ⊃ q) Γ⊢ᵉp⊃q r Γ≼Γ′ k =
       k ≼-refl (λ Γ′≼Γ′′ Γ′′⊩p →
         reflect q (app (⊢ᵉ-≼ (Γ≼Γ′ ⊙ Γ′≼Γ′′) Γ⊢ᵉp⊃q) (reify p Γ′′⊩p)))
     reflect (p ∧ q) Γ⊢ᵉp∧q r Γ≼Γ′ k =
-      k ≼-refl
-        (reflect p (fst Γ′⊢ᵉp∧q) , reflect q (snd Γ′⊢ᵉp∧q))
+      k ≼-refl (reflect p (fst Γ′⊢ᵉp∧q) , reflect q (snd Γ′⊢ᵉp∧q))
       where Γ′⊢ᵉp∧q = ⊢ᵉ-≼ Γ≼Γ′ Γ⊢ᵉp∧q
     reflect (p ∨ q) Γ⊢ᵉp∨q r {Γ′} Γ≼Γ′ k =
-      ne (case (⊢ᵉ-≼ Γ≼Γ′ Γ⊢ᵉp∨q)
+      ne (case Γ′⊢ᵉp∨q
                (k (≼-cons ≼-refl) (inj₁ (reflect p hyp)))
                (k (≼-cons ≼-refl) (inj₂ (reflect q hyp))))
+      where Γ′⊢ᵉp∨q = ⊢ᵉ-≼ Γ≼Γ′ Γ⊢ᵉp∨q
 
   reflect-context : (Γ : List Formula) → Γ ⊪ Γ
   reflect-context [] = tt
