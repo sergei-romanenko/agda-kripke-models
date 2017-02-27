@@ -67,12 +67,12 @@ module Logic (Proposition : Set) where
 
 record Kripke (Proposition : Set) : Set₁ where
   field
-    K : Set
-    _≤_ : K → K → Set
-    ≤-refl : {w : K} → w ≤ w
-    _⊙_ : {w w′ w′′ : K} → w ≤ w′ → w′ ≤ w′′ → w ≤ w′′
-    _⊩ᵃ_ : K → Proposition → Set
-    ⊩ᵃ-≤ : {a : Proposition} {w w′ : K} → w ≤ w′ → w ⊩ᵃ a → w′ ⊩ᵃ a
+    World : Set
+    _≤_ : World → World → Set
+    ε : ∀ {w} → w ≤ w
+    _⊙_ : ∀ {w w′ w′′} → w ≤ w′ → w′ ≤ w′′ → w ≤ w′′
+    _⊩ᵃ_ : World → Proposition → Set
+    ⊩ᵃ-≤ : ∀ {w w′ a} → w ≤ w′ → w ⊩ᵃ a → w′ ⊩ᵃ a
 
 module Semantics (Proposition : Set) (kripke : Kripke Proposition) where
 
@@ -81,31 +81,31 @@ module Semantics (Proposition : Set) (kripke : Kripke Proposition) where
 
   infix 3 _⊩_ _⊪_
 
-  _⊩_ : K → Formula → Set
+  _⊩_ : World → Formula → Set
   w ⊩ ⟪ a ⟫ = w ⊩ᵃ a
-  w ⊩ p ⊃ q = {w′ : K} → w ≤ w′ → w′ ⊩ p → w′ ⊩ q
+  w ⊩ p ⊃ q = ∀ {w′} → w ≤ w′ → w′ ⊩ p → w′ ⊩ q
   w ⊩ p ∧ q = w ⊩ p × w ⊩ q
   w ⊩ p ∨ q = w ⊩ p ⊎ w ⊩ q
   w ⊩ 𝟘 = ⊥
 
-  _⊪_ : K → List Formula → Set
+  _⊪_ : World → List Formula → Set
   w ⊪ [] = ⊤
   w ⊪ (p ∷ Γ) = w ⊩ p × w ⊪ Γ
 
-  ⊩-≤ : ∀ p {w w′ : K} → w ≤ w′ → w ⊩ p → w′ ⊩ p
+  ⊩-≤ : ∀ {w w′} p → w ≤ w′ → w ⊩ p → w′ ⊩ p
   ⊩-≤ ⟪ a ⟫ = ⊩ᵃ-≤
-  ⊩-≤ (p ⊃ q) w≤w′ w⊩p⊃q w′≤w′′ =
-    w⊩p⊃q (w≤w′ ⊙ w′≤w′′)
-  ⊩-≤ (p ∧ q) w≤w′ =
-    Prod.map (⊩-≤ p w≤w′) (⊩-≤ q w≤w′)
-  ⊩-≤ (p ∨ q) w≤w′ =
-    Sum.map (⊩-≤ p w≤w′) (⊩-≤ q w≤w′)
-  ⊩-≤ 𝟘 w≤w′ ()
+  ⊩-≤ (p ⊃ q) ≤′ w⊩p⊃q ≤′′ =
+    w⊩p⊃q (≤′ ⊙ ≤′′)
+  ⊩-≤ (p ∧ q) ≤′ =
+    Prod.map (⊩-≤ p ≤′) (⊩-≤ q ≤′)
+  ⊩-≤ (p ∨ q) ≤′ =
+    Sum.map (⊩-≤ p ≤′) (⊩-≤ q ≤′)
+  ⊩-≤ 𝟘 ≤′ ()
 
-  ⊪-≤ : ∀ Γ {w w′ : K} → w ≤ w′ → w ⊪ Γ → w′ ⊪ Γ
-  ⊪-≤ [] w≤w′ w⊪[] = tt
-  ⊪-≤ (p ∷ Γ) w≤w′ =
-    Prod.map (⊩-≤ p w≤w′) (⊪-≤ Γ w≤w′)
+  ⊪-≤ : ∀ {w w′} Γ → w ≤ w′ → w ⊪ Γ → w′ ⊪ Γ
+  ⊪-≤ [] ≤′ w⊪[] = tt
+  ⊪-≤ (p ∷ Γ) ≤′ =
+    Prod.map (⊩-≤ p ≤′) (⊪-≤ Γ ≤′)
 
 module Soundness (Proposition : Set) (kripke : Kripke Proposition) where
 
@@ -113,15 +113,15 @@ module Soundness (Proposition : Set) (kripke : Kripke Proposition) where
   open Kripke kripke public
   open Semantics Proposition kripke public
 
-  soundness : ∀ {Γ p} → Γ ⊢ p → {w : K} → w ⊪ Γ → w ⊩ p
+  soundness : ∀ {Γ p} → Γ ⊢ p → ∀ {w} → w ⊪ Γ → w ⊩ p
   soundness hyp w⊪p∷Γ =
     proj₁ w⊪p∷Γ
   soundness (wkn Γ⊢p) w⊪p∷Γ =
     soundness Γ⊢p (proj₂ w⊪p∷Γ)
-  soundness {Γ} (lam Γ⊢p) w⊪Γ w≤w′ w′⊩p =
-    soundness Γ⊢p (w′⊩p , ⊪-≤ Γ w≤w′ w⊪Γ)
+  soundness {Γ} (lam Γ⊢p) w⊪Γ ≤′ w′⊩p =
+    soundness Γ⊢p (w′⊩p , ⊪-≤ Γ ≤′ w⊪Γ)
   soundness (app Γ⊢p⊃q Γ⊢p) w⊪Γ =
-    soundness Γ⊢p⊃q w⊪Γ ≤-refl (soundness Γ⊢p w⊪Γ)
+    soundness Γ⊢p⊃q w⊪Γ ε (soundness Γ⊢p w⊪Γ)
   soundness (pair Γ⊢p Γ⊢q) w⊪Γ =
     soundness Γ⊢p w⊪Γ , soundness Γ⊢q w⊪Γ
   soundness (fst Γ⊢p∧q) w⊪Γ =
@@ -132,11 +132,11 @@ module Soundness (Proposition : Set) (kripke : Kripke Proposition) where
     inj₁ (soundness Γ⊢p w⊪Γ)
   soundness (inr Γ⊢p) w⊪Γ =
     inj₂ (soundness Γ⊢p w⊪Γ)
-  -- soundness {Γ} {r} (case Γ⊢p∨q p∷Γ⊢r q∷Γ⊢r) w⊪Γ =
+  -- soundness (case Γ⊢p∨q p∷Γ⊢r q∷Γ⊢r) w⊪Γ =
   --   [ (λ w⊩p → soundness p∷Γ⊢r (w⊩p , w⊪Γ)) ,
   --     (λ w⊩q → soundness q∷Γ⊢r (w⊩q , w⊪Γ)) ]′
   --     (soundness Γ⊢p∨q w⊪Γ)
-  soundness {.Γ} {.r} (case {Γ} {p} {q} {r} Γ⊢p∨q p∷Γ⊢r q∷Γ⊢r) w⊪Γ
+  soundness (case Γ⊢p∨q p∷Γ⊢r q∷Γ⊢r) w⊪Γ
     with soundness Γ⊢p∨q w⊪Γ
   ... | inj₁ w⊩p = soundness p∷Γ⊢r (w⊩p , w⊪Γ)
   ... | inj₂ w⊩q = soundness q∷Γ⊢r (w⊩q , w⊪Γ)
