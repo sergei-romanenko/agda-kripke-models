@@ -240,13 +240,13 @@ module Kripke1 where
 
   ~~x⊃x = ~ ~ ⟪ x ⟫ ⊃ ⟪ x ⟫
 
+  w0⊩~~x : w0 ⊩ ~ ~ ⟪ x ⟫
+  w0⊩~~x ≼00 w0⊩~x = w0⊩~x ≼01 w1x
+  w0⊩~~x ≼01 w1⊩~x = w1⊩~x ≼11 w1x
+
   ¬w0⊩~~x⊃x : ¬(w0 ⊩ ~~x⊃x)
   ¬w0⊩~~x⊃x w0⊩~~x⊃x
-    with w0⊩~~x⊃x ≼00
-      (λ where
-         ≼00 w0⊩~x → w0⊩~x ≼01 w1x
-         ≼01 w1⊩~x → w1⊩~x ≼11 w1x
-      )
+    with w0⊩~~x⊃x ≼00 w0⊩~~x
   ... | ()
 
   ¬⊢~~x⊃x : ¬ ([] ⊢ ~~x⊃x)
@@ -313,3 +313,84 @@ module Kripke2 where
   
   ¬⊢~[x∧y]⊃~x∨~y : ¬ ([] ⊢ ~[x∧y]⊃~x∨~y)
   ¬⊢~[x∧y]⊃~x∨~y = ¬deducible w0 ~[x∧y]⊃~x∨~y ¬w0⊩~[x∧y]⊃~x∨~y
+
+module Kripke3 where
+
+  data Prop : Set where
+    x y : Prop
+
+  data World : Set where
+    w0 w1 w2 w3 : World
+
+  data _⊫_ : World → Prop → Set where
+    w1y : w1 ⊫ y
+    w2x : w2 ⊫ x
+    w2y : w2 ⊫ y
+    w3x : w3 ⊫ x
+    w3y : w3 ⊫ y
+
+  data _≼_ : (w w′ : World) → Set where
+    ≼00 : w0 ≼ w0
+    ≼11 : w1 ≼ w1
+    ≼22 : w2 ≼ w2
+    ≼33 : w3 ≼ w3
+    ≼01 : w0 ≼ w1
+    ≼02 : w0 ≼ w2
+    ≼13 : w1 ≼ w3
+    ≼23 : w2 ≼ w3
+    ≼03 : w0 ≼ w3
+
+  ε : ∀ {w} → w ≼ w
+  ε {w0} = ≼00
+  ε {w1} = ≼11
+  ε {w2} = ≼22
+  ε {w3} = ≼33
+
+  _⊙_ : ∀ {w w′ w′′} → w ≼ w′ → w′ ≼ w′′ → w ≼ w′′
+  ≼00 ⊙ w′≼w′′ = w′≼w′′
+  ≼11 ⊙ w′≼w′′ = w′≼w′′
+  ≼22 ⊙ w′≼w′′ = w′≼w′′
+  ≼33 ⊙ w′≼w′′ = w′≼w′′
+  w≼w′ ⊙ ≼11 = w≼w′
+  w≼w′ ⊙ ≼22 = w≼w′
+  w≼w′ ⊙ ≼33 = w≼w′
+  ≼01 ⊙ ≼13 = ≼03
+  ≼02 ⊙ ≼23 = ≼03
+
+  ⊫-≼ : ∀ {w w′ a} → w ≼ w′ → w ⊫ a → w′ ⊫ a
+  ⊫-≼ ≼11 w1y = w1y
+  ⊫-≼ ≼22 w2x = w2x
+  ⊫-≼ ≼22 w2y = w2y
+  ⊫-≼ ≼33 w3x = w3x
+  ⊫-≼ ≼33 w3y = w3y
+  ⊫-≼ ≼13 w1y = w3y
+  ⊫-≼ ≼23 w2x = w3x
+  ⊫-≼ ≼23 w2y = w3y
+
+  kripke : Kripke Prop
+  kripke = record
+    { World = World
+    ; _≤_ = _≼_
+    ; ε = ε
+    ; _⊙_ = _⊙_
+    ; _⊩ᵃ_ = _⊫_ ;
+    ⊩ᵃ-≤ = ⊫-≼ }
+
+  open Soundness Prop kripke
+
+  [x⊃y]⊃~x∨y = (⟪ x ⟫ ⊃ ⟪ y ⟫) ⊃ ~ ⟪ x ⟫ ∨ ⟪ y ⟫
+
+  w0⊩x⊃y : w0 ⊩ ⟪ x ⟫ ⊃ ⟪ y ⟫
+  w0⊩x⊃y ≼00 ()
+  w0⊩x⊃y ≼01 ()
+  w0⊩x⊃y ≼02 w2x = w2y
+  w0⊩x⊃y ≼03 w3x = w3y
+
+  ¬w0⊩[x⊃y]⊃~x∨y : ¬ (w0 ⊩ [x⊃y]⊃~x∨y)
+  ¬w0⊩[x⊃y]⊃~x∨y w0⊩[x⊃y]⊃~x∨y
+    with w0⊩[x⊃y]⊃~x∨y ≼00 w0⊩x⊃y
+  ... | inj₁ w0⊩~x = w0⊩~x ≼02 w2x
+  ... | inj₂ ()
+  
+  ¬⊢[x⊃y]⊃~x∨y : ¬ ([] ⊢ [x⊃y]⊃~x∨y)
+  ¬⊢[x⊃y]⊃~x∨y = ¬deducible w0 [x⊃y]⊃~x∨y ¬w0⊩[x⊃y]⊃~x∨y
