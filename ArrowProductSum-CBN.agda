@@ -223,13 +223,14 @@ module Completeness where
   nbe : ∀ {Γ p} → Γ ⊢ p → Γ ⊢ p
   nbe {Γ} Γ⊢p = reify (soundness Γ⊢p (reflect-context Γ))
 
+  {-
   -- disjunction property
 
   disjunction-prop : ∀ {Γ p q} → Γ ⊢ (p ∨ q) → (Γ ⊢ p) ⊎ (Γ ⊢ q)
   disjunction-prop {Γ} {p} {q} Γ⊢p∨q
     with soundness Γ⊢p∨q (reflect-context Γ)
   ... | xxx = {!xxx ? !}
-  
+  -}
 
 module NBE-Samples (a b c d : Proposition) where
 

@@ -48,7 +48,7 @@ record Kripke (Proposition : Set) : Set₁ where
     ε : ∀ {w} → w ≤ w
     _⊙_ : ∀ {w w′ w′′} → w ≤ w′ → w′ ≤ w′′ → w ≤ w′′
     _⊩ᵃ_ : World → Proposition → Set
-    ⊩ᵃ-≤ : ∀ {a w w′} → w ≤ w′ → w ⊩ᵃ a → w′ ⊩ᵃ a
+    ⊩ᵃ≤ : ∀ {a w w′} → w ≤ w′ → w ⊩ᵃ a → w′ ⊩ᵃ a
 
 module Semantics (Proposition : Set) (kripke : Kripke Proposition) where
 
@@ -66,17 +66,17 @@ module Semantics (Proposition : Set) (kripke : Kripke Proposition) where
   w ⊪ [] = ⊤
   w ⊪ (p ∷ Γ) = w ⊩ p × w ⊪ Γ
 
-  ⊩-≤ : ∀ p {w w′} → w ≤ w′ → w ⊩ p → w′ ⊩ p
-  ⊩-≤ ⟪ a ⟫ = ⊩ᵃ-≤
-  ⊩-≤ (p ⊃ q) w≤w′ w⊩p⊃q w′≤w′′ =
-    w⊩p⊃q (w≤w′ ⊙ w′≤w′′)
-  ⊩-≤ (p ∧ q) w≤w′ =
-    Prod.map (⊩-≤ p w≤w′) (⊩-≤ q w≤w′)
+  ⊩≤ : ∀ p {w w′} → w ≤ w′ → w ⊩ p → w′ ⊩ p
+  ⊩≤ ⟪ a ⟫ = ⊩ᵃ≤
+  ⊩≤ (p ⊃ q) ≤′ w⊩p⊃q ≤′′ =
+    w⊩p⊃q (≤′ ⊙ ≤′′)
+  ⊩≤ (p ∧ q) ≤′ =
+    Prod.map (⊩≤ p ≤′) (⊩≤ q ≤′)
 
-  ⊪-≤ : ∀ Γ {w w′} → w ≤ w′ → w ⊪ Γ → w′ ⊪ Γ
-  ⊪-≤ [] w≤w′ w⊪[] = tt
-  ⊪-≤ (p ∷ Γ) w≤w′ =
-    Prod.map (⊩-≤ p w≤w′) (⊪-≤ Γ w≤w′)
+  ⊪≤ : ∀ Γ {w w′} → w ≤ w′ → w ⊪ Γ → w′ ⊪ Γ
+  ⊪≤ [] ≤′ w⊪[] = tt
+  ⊪≤ (p ∷ Γ) ≤′ =
+    Prod.map (⊩≤ p ≤′) (⊪≤ Γ ≤′)
 
 module Soundness (Proposition : Set) (kripke : Kripke Proposition) where
 
@@ -89,8 +89,8 @@ module Soundness (Proposition : Set) (kripke : Kripke Proposition) where
     proj₁ w⊪p∷Γ
   soundness (wkn Γ⊢p) w⊪p∷Γ =
     soundness Γ⊢p (proj₂ w⊪p∷Γ)
-  soundness {Γ} (lam Γ⊢p) w⊪Γ w≤w′ w′⊩p =
-    soundness Γ⊢p (w′⊩p , ⊪-≤ Γ w≤w′ w⊪Γ)
+  soundness {Γ} (lam Γ⊢p) w⊪Γ ≤′ w′⊩p =
+    soundness Γ⊢p (w′⊩p , ⊪≤ Γ ≤′ w⊪Γ)
   soundness (app Γ⊢p⊃q Γ⊢p) w⊪Γ =
     soundness Γ⊢p⊃q w⊪Γ ε (soundness Γ⊢p w⊪Γ)
   soundness (pair Γ⊢p Γ⊢q) w⊪Γ =
@@ -118,12 +118,12 @@ module Completeness (Proposition : Set) where
   δ = ≼-cons ≼-refl
 
   ≼-trans : ∀ {Γ Γ′ Γ′′} → Γ ≼ Γ′ → Γ′ ≼ Γ′′ → Γ ≼ Γ′′
-  ≼-trans Γ≼Γ′ ≼-refl = Γ≼Γ′
-  ≼-trans Γ≼Γ′ (≼-cons Γ′≼Γ′′) = ≼-cons (≼-trans Γ≼Γ′ Γ′≼Γ′′)
+  ≼-trans ≼′ ≼-refl = ≼′
+  ≼-trans ≼′ (≼-cons ≼′′) = ≼-cons (≼-trans ≼′ ≼′′)
 
-  ⊢-≼ : ∀ {p Γ Γ′} → Γ ≼ Γ′ → Γ ⊢ p → Γ′ ⊢ p
-  ⊢-≼ ≼-refl Γ′⊢p = Γ′⊢p
-  ⊢-≼ (≼-cons Γ≼Γ′) Γ⊢p = wkn (⊢-≼ Γ≼Γ′ Γ⊢p)
+  ⊢≼ : ∀ {p Γ Γ′} → Γ ≼ Γ′ → Γ ⊢ p → Γ′ ⊢ p
+  ⊢≼ ≼-refl Γ′⊢p = Γ′⊢p
+  ⊢≼ (≼-cons ≼′) Γ⊢p = wkn (⊢≼ ≼′ Γ⊢p)
 
   uks : Kripke Proposition
   uks = record
@@ -132,7 +132,7 @@ module Completeness (Proposition : Set) where
     ; ε = ≼-refl
     ; _⊙_ = ≼-trans
     ; _⊩ᵃ_ = λ Γ a → Γ ⊢ ⟪ a ⟫
-    ; ⊩ᵃ-≤ = ⊢-≼
+    ; ⊩ᵃ≤ = ⊢≼
     }
 
   open Kripke uks
@@ -149,16 +149,16 @@ module Completeness (Proposition : Set) where
 
     reflect : ∀ {p Γ} → Γ ⊢ p → Γ ⊩ p
     reflect {⟪ a ⟫} {Γ} Γ⊢⟪a⟫ = Γ⊢⟪a⟫
-    reflect {p ⊃ q} Γ⊢p⊃q Γ≼Γ′ Γ′⊩p =
+    reflect {p ⊃ q} Γ⊢p⊃q ≼′ Γ′⊩p =
       reflect (app Γ′⊢p⊃q (reify Γ′⊩p))
-      where Γ′⊢p⊃q = ⊢-≼ Γ≼Γ′ Γ⊢p⊃q
+      where Γ′⊢p⊃q = ⊢≼ ≼′ Γ⊢p⊃q
     reflect {p ∧ q} Γ⊢p∧q =
       reflect (fst Γ⊢p∧q) , reflect (snd Γ⊢p∧q)
 
   reflect-context : ∀ Γ → Γ ⊪ Γ
   reflect-context [] = tt
   reflect-context (p ∷ Γ) =
-    reflect {p} hyp , ⊪-≤ Γ δ (reflect-context Γ)
+    reflect {p} hyp , ⊪≤ Γ δ (reflect-context Γ)
 
   nbe : ∀ {Γ p} → Γ ⊢ p → Γ ⊢ p
   nbe {Γ} Γ⊢p = reify (soundness Γ⊢p (reflect-context Γ))
