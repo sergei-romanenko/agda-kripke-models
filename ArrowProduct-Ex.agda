@@ -27,20 +27,40 @@ module SampleProofs (Atomic : Set) where
   snd-wkn′ : ∀ {p q r} → p ∷ (q ∧ r) ∷ [] ⊢ r
   snd-wkn′ = wkn (snd hyp)
 
-  p⊃p : ∀ {p} → [] ⊢ p ⊃ p
-  p⊃p = lam hyp
+  ⊃-hyp : ∀ {p} → [] ⊢ p ⊃ p
+  ⊃-hyp = lam hyp
 
-  p-q-p : ∀ {p q} → [] ⊢ p ⊃ q ⊃ p
-  p-q-p = lam (lam (wkn hyp)) 
+  ⊃-wkn : ∀ {p q} → [] ⊢ p ⊃ q ⊃ p
+  ⊃-wkn = lam (lam (wkn hyp)) 
 
-  p-pq-q : ∀ {p q} → [] ⊢ p ⊃ (p ⊃ q) ⊃ q
-  p-pq-q = lam (lam (app hyp (wkn hyp)))
+  ⊃-mp : ∀ {p q} → [] ⊢ p ⊃ (p ⊃ q) ⊃ q
+  ⊃-mp = lam (lam (app hyp (wkn hyp)))
 
-  p∧q⊃q∧p : ∀ {p q} → [] ⊢ p ∧ q ⊃ q ∧ p
-  p∧q⊃q∧p = lam (pair (snd hyp) (fst hyp))
+  ⊃-trans : ∀ {p q r} → [] ⊢ p ⊃ (p ⊃ q) ⊃ (q ⊃ r) ⊃ r
+  ⊃-trans = lam (lam (lam (app hyp (app (wkn hyp) (wkn (wkn hyp))))))
 
-  ∧-assoc : ∀ {p q r} → [] ⊢ (p ∧ q) ∧ r ⊃ p ∧ (q ∧ r)
-  ∧-assoc = lam (pair (fst (fst hyp)) (pair (snd (fst hyp)) (snd hyp)))
+  ⊃-cut : ∀ {p q r} → [] ⊢ (p ⊃ q ⊃ r) ⊃ (p ⊃ q) ⊃ p ⊃ r
+  ⊃-cut = lam (lam (lam (app (app (wkn (wkn hyp)) hyp) (app (wkn hyp) hyp))))
+
+  ∧-fst : ∀ {p q} → [] ⊢ p ∧ q ⊃ p
+  ∧-fst = lam (fst hyp)
+
+  ∧-snd : ∀ {p q} → [] ⊢ p ∧ q ⊃ q
+  ∧-snd = lam (snd hyp)
+
+  ∧-pair : ∀ {p q} → [] ⊢ p ⊃ q ⊃ p ∧ q
+  ∧-pair = lam (lam (pair (wkn hyp) hyp))
+
+  ∧-comm : ∀ {p q} → [] ⊢ p ∧ q ⊃ q ∧ p
+  ∧-comm = lam (pair (snd hyp) (fst hyp))
+
+  ∧-assoc1 : ∀ {p q r} → [] ⊢ (p ∧ q) ∧ r ⊃ p ∧ (q ∧ r)
+  ∧-assoc1 =
+    lam (pair (fst (fst hyp)) (pair (snd (fst hyp)) (snd hyp)))
+
+  ∧-assoc2 : ∀ {p q r} → [] ⊢ p ∧ (q ∧ r) ⊃ (p ∧ q) ∧ r
+  ∧-assoc2 {p} {q} {r} =
+    lam (pair (pair (fst hyp) (fst (snd hyp))) (snd (snd hyp)))
 
   ⊢p∧q₁ : ∀ {p q r} → r ∷ p ∷ q ∷ [] ⊢ p ∧ q
   ⊢p∧q₁ = pair (wkn hyp) (wkn (wkn hyp))

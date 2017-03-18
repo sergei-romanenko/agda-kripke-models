@@ -26,6 +26,12 @@ module SampleProofs (Proposition : Set)  where
   ⊃-wkn : ∀ {p q} → [] ⊢ p ⊃ q ⊃ p
   ⊃-wkn = lam (lam (wkn hyp)) 
 
+  ⊃-mp : ∀ {p q} → [] ⊢ p ⊃ (p ⊃ q) ⊃ q
+  ⊃-mp = lam (lam (app hyp (wkn hyp)))
+
+  ⊃-trans : ∀ {p q r} → [] ⊢ p ⊃ (p ⊃ q) ⊃ (q ⊃ r) ⊃ r
+  ⊃-trans = lam (lam (lam (app hyp (app (wkn hyp) (wkn (wkn hyp))))))
+
   ⊃-cut : ∀ {p q r} → [] ⊢ (p ⊃ q ⊃ r) ⊃ (p ⊃ q) ⊃ p ⊃ r
   ⊃-cut = lam (lam (lam (app (app (wkn (wkn hyp)) hyp) (app (wkn hyp) hyp))))
 
@@ -47,12 +53,6 @@ module SampleProofs (Proposition : Set)  where
   ∨-case : ∀ {p q r} → [] ⊢ (p ⊃ r) ⊃ (q ⊃ r) ⊃ p ∨ q ⊃ r
   ∨-case {p} {q} {r} = lam (lam (lam
     (case hyp (app (wkn (wkn (wkn hyp))) hyp) (app (wkn (wkn hyp)) hyp))))
-
-  ⊃-mp : ∀ {p q} → [] ⊢ p ⊃ (p ⊃ q) ⊃ q
-  ⊃-mp = lam (lam (app hyp (wkn hyp)))
-
-  ⊃-trans : ∀ {p q r} → [] ⊢ p ⊃ (p ⊃ q) ⊃ (q ⊃ r) ⊃ r
-  ⊃-trans = lam (lam (lam (app hyp (app (wkn hyp) (wkn (wkn hyp))))))
 
   ∧-comm : ∀ {p q} → [] ⊢ p ∧ q ⊃ q ∧ p
   ∧-comm = lam (pair (snd hyp) (fst hyp))

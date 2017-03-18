@@ -17,9 +17,9 @@ open ≡-Reasoning
 
 open import ArrowProductNBE
 
-module SampleProofs (Proposition : Set) where
+module SampleProofs (Atomic : Set) where
 
-  open Logic Proposition
+  open Logic Atomic
 
   snd-wkn : ∀ {p q r} → p ∷ (q ∧ r) ∷ [] ⊢ r
   snd-wkn = snd (wkn hyp)
@@ -36,8 +36,8 @@ module SampleProofs (Proposition : Set) where
   p-pq-q : ∀ {p q} → [] ⊢ p ⊃ (p ⊃ q) ⊃ q
   p-pq-q = lam (lam (app hyp (wkn hyp)))
 
-  p∧q⊃q∧p : ∀ {p q} → [] ⊢ p ∧ q ⊃ q ∧ p
-  p∧q⊃q∧p = lam (pair (snd hyp) (fst hyp))
+  ∧-comm : ∀ {p q} → [] ⊢ p ∧ q ⊃ q ∧ p
+  ∧-comm = lam (pair (snd hyp) (fst hyp))
 
   ∧-assoc : ∀ {p q r} → [] ⊢ (p ∧ q) ∧ r ⊃ p ∧ (q ∧ r)
   ∧-assoc = lam (pair (fst (fst hyp)) (pair (snd (fst hyp)) (snd hyp)))
@@ -48,9 +48,9 @@ module SampleProofs (Proposition : Set) where
   ⊢p∧q₂ : ∀ {p q r} → r ∷ p ∷ q ∷ [] ⊢ p ∧ q
   ⊢p∧q₂ = wkn (pair hyp (wkn hyp))
 
-module SampleProofsR (Proposition : Set) where
+module SampleProofsR (Atomic : Set) where
 
-  open Logic Proposition
+  open Logic Atomic
 
   snd-wkn : ∀ {p q r} → p ∷ (q ∧ r) ∷ [] ⊢ʳ r
   snd-wkn = ne (snd (wkn (ne hyp)))
@@ -81,10 +81,10 @@ module SampleProofsR (Proposition : Set) where
   ⊢p∧q₂ = ne (wkn (pair (ne hyp) (ne (wkn (ne hyp)))))
 
 
-module NBE-Samples (Proposition : Set) (a b c : Proposition) where
+module NBE-Samples (Atomic : Set) (a b c : Atomic) where
 
-  open Logic Proposition
-  open Completeness Proposition
+  open Logic Atomic
+  open Completeness Atomic
 
   id-id : [] ⊢ ⟪ a ⟫ ⊃ ⟪ a ⟫
   id-id = app (lam hyp) (lam hyp)

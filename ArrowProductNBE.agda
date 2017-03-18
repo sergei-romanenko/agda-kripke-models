@@ -16,14 +16,14 @@ open ≡-Reasoning
 
 -- Syntax
 
-module Logic (Proposition : Set) where
+module Logic (Atomic : Set) where
 
   infix 3 _⊢_ _⊢ʳ_ _⊢ᵉ_
   infixr 4 _⊃_
   infixr 6 _∧_
 
   data Formula : Set where
-    ⟪_⟫  : (a : Proposition) → Formula
+    ⟪_⟫  : (a : Atomic) → Formula
     _⊃_ : (p q : Formula) → Formula
     _∧_ : (p q : Formula) → Formula
 
@@ -73,6 +73,7 @@ module Semantics (Proposition : Set) (kripke : Kripke Proposition) where
   open Kripke kripke
 
   infix 3 _⊩_ _⊪_
+
   _⊩_ : World → Formula → Set
   w ⊩ ⟪ a ⟫ = w ⊩ᵃ a
   w ⊩ p ⊃ q = ∀ {w′} → w ≤ w′ → w′ ⊩ p → w′ ⊩ q
@@ -116,9 +117,9 @@ module Soundness (Proposition : Set) (kripke : Kripke Proposition) where
   soundness (snd Γ⊢p∧q) w⊪Γ =
     proj₂ (soundness Γ⊢p∧q w⊪Γ)
 
-module Completeness (Proposition : Set) where
+module Completeness (Atomic : Set) where
 
-  open Logic Proposition
+  open Logic Atomic
 
   data _≼_ : (Γ Γ′ : Ctx) → Set where 
     ≼-refl : ∀ {Γ} → Γ ≼ Γ
@@ -139,7 +140,7 @@ module Completeness (Proposition : Set) where
   ⊢ʳ≼ ≼-refl Γ⊢ʳp = Γ⊢ʳp
   ⊢ʳ≼ (≼-cons ≼′) Γ⊢ʳp = ne (wkn (⊢ʳ≼ ≼′ Γ⊢ʳp))
 
-  uks : Kripke Proposition
+  uks : Kripke Atomic
   uks = record
     { World = Ctx
     ; _≤_ = _≼_
@@ -150,8 +151,8 @@ module Completeness (Proposition : Set) where
     }
 
   open Kripke uks
-  open Semantics Proposition uks
-  open Soundness Proposition uks
+  open Semantics Atomic uks
+  open Soundness Atomic uks
 
   mutual
     reify : ∀ {p Γ} → Γ ⊩ p → Γ ⊢ʳ p
