@@ -17,14 +17,14 @@ open ≡-Reasoning
 
 -- Syntax
 
-module Logic (Proposition : Set) where
+module Logic (Atomic : Set) where
 
   infix 3 _⊢_
   infixr 4 _⊃_
   infixr 6 _∧_
 
   data Formula : Set where
-    ⟪_⟫  : (a : Proposition) → Formula
+    ⟪_⟫  : (a : Atomic) → Formula
     _⊃_ : (p q : Formula) → Formula
     _∧_ : (p q : Formula) → Formula
 
@@ -106,9 +106,9 @@ module Soundness (Proposition : Set) (kripke : Kripke Proposition) where
   ¬deducible w p ¬w⊩p []⊢p =
     ¬w⊩p (soundness []⊢p tt)
 
-module Completeness (Proposition : Set) where
+module Completeness (Atomic : Set) where
 
-  open Logic Proposition
+  open Logic Atomic
 
   data _≼_ : (Γ Γ′ : Ctx) → Set where 
     ≼-refl : ∀ {Γ} → Γ ≼ Γ
@@ -125,7 +125,7 @@ module Completeness (Proposition : Set) where
   ⊢≼ ≼-refl Γ′⊢p = Γ′⊢p
   ⊢≼ (≼-cons ≼′) Γ⊢p = wkn (⊢≼ ≼′ Γ⊢p)
 
-  uks : Kripke Proposition
+  uks : Kripke Atomic
   uks = record
     { World = Ctx
     ; _≤_ = _≼_
@@ -136,8 +136,8 @@ module Completeness (Proposition : Set) where
     }
 
   open Kripke uks
-  open Semantics Proposition uks
-  open Soundness Proposition uks
+  open Semantics Atomic uks
+  open Soundness Atomic uks
 
   mutual
     reify : ∀ {p Γ} → Γ ⊩ p → Γ ⊢ p

@@ -1,4 +1,4 @@
-module ArrowProductEx where
+module ArrowProduct-Ex where
 
 open import Data.List
 open import Data.Unit
@@ -17,9 +17,9 @@ open ≡-Reasoning
 
 open import ArrowProduct
 
-module SampleProofs (Proposition : Set) where
+module SampleProofs (Atomic : Set) where
 
-  open Logic Proposition
+  open Logic Atomic
 
   snd-wkn : ∀ {p q r} → p ∷ (q ∧ r) ∷ [] ⊢ r
   snd-wkn = snd (wkn hyp)
@@ -49,10 +49,10 @@ module SampleProofs (Proposition : Set) where
   ⊢p∧q₂ = wkn (pair hyp (wkn hyp))
 
 
-module NBE-Samples (Proposition : Set) (a b c : Proposition) where
+module NBE-Samples (Atomic : Set) (a b c : Atomic) where
 
-  open Logic Proposition
-  open Completeness Proposition
+  open Logic Atomic
+  open Completeness Atomic
 
   id-id : [] ⊢ ⟪ a ⟫ ⊃ ⟪ a ⟫
   id-id = app (lam hyp) (lam hyp)
