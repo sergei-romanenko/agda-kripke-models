@@ -1,4 +1,4 @@
-module ArrowProductSumBottomEx where
+module ArrowProductSumBottom-Ex where
 
 open import Data.List
 open import Data.Unit

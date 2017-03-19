@@ -53,7 +53,7 @@ record Kripke (Proposition : Set) : Set₁ where
     ε : ∀ {w} → w ≤ w
     _⊙_ : ∀ {w w′ w′′} → w ≤ w′ → w′ ≤ w′′ → w ≤ w′′
     _⊩ᵃ_ : World → Proposition → Set
-    ⊩ᵃ-≤ : ∀ {a w w′} → w ≤ w′ → w ⊩ᵃ a → w′ ⊩ᵃ a
+    ⊩ᵃ≤ : ∀ {a w w′} → w ≤ w′ → w ⊩ᵃ a → w′ ⊩ᵃ a
 
 module Semantics
   (Atomic : Set)
@@ -82,22 +82,22 @@ module Semantics
   w ⊪ [] = ⊤
   w ⊪ (p ∷ Γ) = w ⊩ p × w ⊪ Γ
 
-  ⊩-≤ : ∀ p {w w′} → w ≤ w′ → w ⊩ p → w′ ⊩ p
-  ⊩-≤ p ≤′ w⊩p r ≤′′ k = w⊩p r (≤′ ⊙ ≤′′) k
+  ⊩≤ : ∀ p {w w′} → w ≤ w′ → w ⊩ p → w′ ⊩ p
+  ⊩≤ p ≤′ w⊩p r ≤′′ k = w⊩p r (≤′ ⊙ ≤′′) k
 
-  ⊩ˢ-≤ : ∀ p {w w′} → w ≤ w′ → w ⊩ˢ p → w′ ⊩ˢ p
-  ⊩ˢ-≤ ⟪ a ⟫ = ⊩ᵃ-≤
-  ⊩ˢ-≤ (p ⊃ q) ≤′ w⊩ˢp⊃q ≤′′ =
+  ⊩ˢ≤ : ∀ p {w w′} → w ≤ w′ → w ⊩ˢ p → w′ ⊩ˢ p
+  ⊩ˢ≤ ⟪ a ⟫ = ⊩ᵃ≤
+  ⊩ˢ≤ (p ⊃ q) ≤′ w⊩ˢp⊃q ≤′′ =
     w⊩ˢp⊃q (≤′ ⊙ ≤′′)
-  ⊩ˢ-≤ (p ∧ q) ≤′ =
-    Prod.map (⊩-≤ p ≤′) (⊩-≤ q ≤′)
-  ⊩ˢ-≤ (p ∨ q) ≤′ =
-    Sum.map (⊩-≤ p ≤′) (⊩-≤ q ≤′)
+  ⊩ˢ≤ (p ∧ q) ≤′ =
+    Prod.map (⊩≤ p ≤′) (⊩≤ q ≤′)
+  ⊩ˢ≤ (p ∨ q) ≤′ =
+    Sum.map (⊩≤ p ≤′) (⊩≤ q ≤′)
 
-  ⊪-≤ : ∀ Γ {w w′} → w ≤ w′ → w ⊪ Γ → w′ ⊪ Γ
-  ⊪-≤ [] ≤′ tt = tt
-  ⊪-≤ (p ∷ Γ) ≤′ =
-    Prod.map (⊩-≤ p ≤′) (⊪-≤ Γ ≤′)
+  ⊪≤ : ∀ Γ {w w′} → w ≤ w′ → w ⊪ Γ → w′ ⊪ Γ
+  ⊪≤ [] ≤′ tt = tt
+  ⊪≤ (p ∷ Γ) ≤′ =
+    Prod.map (⊩≤ p ≤′) (⊪≤ Γ ≤′)
 
 module Soundness
   (Atomic : Set)
@@ -109,7 +109,7 @@ module Soundness
 
   return : ∀ p {w} → w ⊩ˢ p → w ⊩ p
   return p w⊩ˢp r ≤′ k =
-    k ε (⊩ˢ-≤ p ≤′ w⊩ˢp)
+    k ε (⊩ˢ≤ p ≤′ w⊩ˢp)
 
   bind : ∀ p r {w} → w ⊩ p → (∀ {w′} → w ≤ w′ → w′ ⊩ˢ p → w′ ⊩ r) → w ⊩ r
   bind p r w⊩p k r′ ≤′ k′ =
@@ -123,10 +123,10 @@ module Soundness
   soundness (wkn Γ⊢p) (w⊩q , w⊪Γ) =
     soundness Γ⊢p w⊪Γ
   soundness (lam {Γ} {p} {q} p∷Γ⊢q) w⊪Γ =
-    return (p ⊃ q) (λ ≤′ w′⊩p → soundness p∷Γ⊢q (w′⊩p , ⊪-≤ Γ ≤′ w⊪Γ))
+    return (p ⊃ q) (λ ≤′ w′⊩p → soundness p∷Γ⊢q (w′⊩p , ⊪≤ Γ ≤′ w⊪Γ))
   soundness (app {Γ} {p} {q} Γ⊢p⊃q Γ⊢p) w⊪Γ =
     bind (p ⊃ q) q (soundness Γ⊢p⊃q w⊪Γ)
-      (λ ≤′ kpq → kpq ε (soundness Γ⊢p (⊪-≤ Γ ≤′ w⊪Γ)))
+      (λ ≤′ kpq → kpq ε (soundness Γ⊢p (⊪≤ Γ ≤′ w⊪Γ)))
   soundness (pair {Γ} {p} {q} Γ⊢p Γ⊢q) {w} w⊪Γ =
     return (p ∧ q) (soundness Γ⊢p w⊪Γ , soundness Γ⊢q w⊪Γ)
   soundness (fst {Γ} {p} {q} Γ⊢p∧q) w⊪Γ =
@@ -139,8 +139,8 @@ module Soundness
     return (p ∨ q) (inj₂ (soundness Γ⊢q w⊪Γ))
   soundness (case {Γ} {p} {q} {r} Γ⊢p∨q p∷Γ⊢r q∷Γ⊢r) {w} w⊪Γ =
     bind (p ∨ q) r (soundness Γ⊢p∨q w⊪Γ)
-      (λ ≤′ → [ (λ w′⊩p → soundness p∷Γ⊢r (w′⊩p , ⊪-≤ Γ ≤′ w⊪Γ)) ,
-                 (λ w′⊩q → soundness q∷Γ⊢r (w′⊩q , ⊪-≤ Γ ≤′ w⊪Γ)) ]′)
+      (λ ≤′ → [ (λ w′⊩p → soundness p∷Γ⊢r (w′⊩p , ⊪≤ Γ ≤′ w⊪Γ)) ,
+                 (λ w′⊩q → soundness q∷Γ⊢r (w′⊩q , ⊪≤ Γ ≤′ w⊪Γ)) ]′)
 
 module Completeness (Atomic : Set) where
 
@@ -154,12 +154,12 @@ module Completeness (Atomic : Set) where
   δ = ≼-cons ≼-refl
 
   ≼-trans : ∀ {Γ Γ′ Γ′′} → Γ ≼ Γ′ → Γ′ ≼ Γ′′ → Γ ≼ Γ′′
-  ≼-trans Γ≼Γ′ ≼-refl = Γ≼Γ′
-  ≼-trans Γ≼Γ′ (≼-cons Γ′≼Γ′′) = ≼-cons (≼-trans Γ≼Γ′ Γ′≼Γ′′)
+  ≼-trans ≼′ ≼-refl = ≼′
+  ≼-trans ≼′ (≼-cons ≼′′) = ≼-cons (≼-trans ≼′ ≼′′)
 
   ⊢≼ : ∀ {p Γ Γ′} → Γ ≼ Γ′ → Γ ⊢ p → Γ′ ⊢ p
   ⊢≼ ≼-refl Γ′⊢p = Γ′⊢p
-  ⊢≼ (≼-cons Γ≼Γ′) Γ⊢p = wkn (⊢≼ Γ≼Γ′ Γ⊢p)
+  ⊢≼ (≼-cons ≼′) Γ⊢p = wkn (⊢≼ ≼′ Γ⊢p)
 
   uks : Kripke Formula
   uks = record
@@ -168,7 +168,7 @@ module Completeness (Atomic : Set) where
     ; ε = ≼-refl
     ; _⊙_ = ≼-trans
     ; _⊩ᵃ_ = _⊢_
-    ; ⊩ᵃ-≤ = ⊢≼
+    ; ⊩ᵃ≤ = ⊢≼
     }
 
   open Kripke uks
@@ -179,38 +179,38 @@ module Completeness (Atomic : Set) where
 
     reify : ∀ {p Γ} → Γ ⊩ p → Γ ⊢ p
     reify {⟪ a ⟫} Γ⊩⟪a⟫ =
-      Γ⊩⟪a⟫ ⟪ a ⟫ ε (λ Γ≼Γ′ Γ′⊩ᵃ⟪a⟫ → Γ′⊩ᵃ⟪a⟫)
+      Γ⊩⟪a⟫ ⟪ a ⟫ ε (λ ≼′ Γ′⊩ᵃ⟪a⟫ → Γ′⊩ᵃ⟪a⟫)
     reify {p ⊃ q} Γ⊩p⊃q =
-      Γ⊩p⊃q (p ⊃ q) ε (λ Γ≼Γ′ kpq →
+      Γ⊩p⊃q (p ⊃ q) ε (λ ≼′ kpq →
         lam (reify (kpq (≼-cons ε) (reflect hyp))) )
     reify {p ∧ q} Γ⊩p∧q =
       Γ⊩p∧q (p ∧ q) ε
-        (λ Γ≼Γ′ Γ′⊩p∧q →
+        (λ ≼′ Γ′⊩p∧q →
           pair (reify (proj₁ Γ′⊩p∧q)) (reify (proj₂ Γ′⊩p∧q)))
     reify {p ∨ q} Γ⊩p∨q =
-      Γ⊩p∨q (p ∨ q) ε (λ Γ≼Γ′ →
+      Γ⊩p∨q (p ∨ q) ε (λ ≼′ →
         [ (λ Γ′⊩p → inl (reify Γ′⊩p)) , (λ Γ′⊩q → inr (reify Γ′⊩q)) ]′)
 
     reflect : ∀ {p Γ} → Γ ⊢ p → Γ ⊩ p
-    reflect {⟪ a ⟫} Γ⊢⟪a⟫ r Γ≼Γ′ k =
-      k ε (⊢≼ Γ≼Γ′ Γ⊢⟪a⟫)
-    reflect {p ⊃ q} Γ⊢p⊃q r Γ≼Γ′ k =
-      k ε (λ Γ′≼Γ′′ Γ′′⊩p →
-        reflect (app (⊢≼ (Γ≼Γ′ ⊙ Γ′≼Γ′′) Γ⊢p⊃q) (reify Γ′′⊩p)))
-    reflect {p ∧ q} Γ⊢p∧q r Γ≼Γ′ k =
+    reflect {⟪ a ⟫} Γ⊢⟪a⟫ r ≼′ k =
+      k ε (⊢≼ ≼′ Γ⊢⟪a⟫)
+    reflect {p ⊃ q} Γ⊢p⊃q r ≼′ k =
+      k ε (λ ≼′′ Γ′′⊩p →
+        reflect (app (⊢≼ (≼′ ⊙ ≼′′) Γ⊢p⊃q) (reify Γ′′⊩p)))
+    reflect {p ∧ q} Γ⊢p∧q r ≼′ k =
       k ε
         (reflect (fst Γ′⊢p∧q) , reflect (snd Γ′⊢p∧q))
-      where Γ′⊢p∧q = ⊢≼ Γ≼Γ′ Γ⊢p∧q
-    reflect {p ∨ q} Γ⊢p∨q r {Γ′} Γ≼Γ′ k =
+      where Γ′⊢p∧q = ⊢≼ ≼′ Γ⊢p∧q
+    reflect {p ∨ q} Γ⊢p∨q r {Γ′} ≼′ k =
       case Γ′⊢p∨q
           (k δ (inj₁ (reflect hyp)))
           (k δ (inj₂ (reflect hyp)))
-      where Γ′⊢p∨q = ⊢≼ Γ≼Γ′ Γ⊢p∨q
+      where Γ′⊢p∨q = ⊢≼ ≼′ Γ⊢p∨q
 
   reflect-context : ∀ Γ → Γ ⊪ Γ
   reflect-context [] = tt
   reflect-context (p ∷ Γ) =
-    reflect hyp , ⊪-≤ Γ δ (reflect-context Γ)
+    reflect hyp , ⊪≤ Γ δ (reflect-context Γ)
 
   nbe : ∀ {Γ p} → Γ ⊢ p → Γ ⊢ p
   nbe {Γ} Γ⊢p = reify (soundness Γ⊢p (reflect-context Γ))

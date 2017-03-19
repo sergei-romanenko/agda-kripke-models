@@ -67,8 +67,8 @@ module SampleProofsR (Atomic : Set) where
   p-pq-q : ∀ {p q} → [] ⊢ʳ p ⊃ (p ⊃ q) ⊃ q
   p-pq-q = lam (lam (ne (app hyp (ne (wkn (ne hyp))))))
 
-  p∧q⊃q∧p : ∀ {p q} → [] ⊢ʳ p ∧ q ⊃ q ∧ p
-  p∧q⊃q∧p = lam (pair (ne (snd hyp)) (ne (fst hyp)))
+  ∧-comm : ∀ {p q} → [] ⊢ʳ p ∧ q ⊃ q ∧ p
+  ∧-comm = lam (pair (ne (snd hyp)) (ne (fst hyp)))
 
   ∧-assoc : ∀ {p q r} → [] ⊢ʳ (p ∧ q) ∧ r ⊃ p ∧ (q ∧ r)
   ∧-assoc = lam (pair (ne (fst (fst hyp)))

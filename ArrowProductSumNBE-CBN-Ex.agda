@@ -1,4 +1,4 @@
-module ArrowProductSum-CBN-Ex where
+module ArrowProductSumNBE-CBN-Ex where
 
 open import Data.List
 open import Data.Unit
@@ -6,7 +6,6 @@ open import Data.Unit
 open import Data.Empty
 open import Data.Product as Prod
 open import Data.Sum as Sum
-open import Data.String using (String)
 
 open import Function
 
@@ -15,7 +14,7 @@ open import Relation.Binary.PropositionalEquality
 
 open ≡-Reasoning
 
-open import ArrowProductSum-CBN
+open import ArrowProductSumNBE-CBN
 
 module SampleProofs (Atomic : Set) where
 
@@ -122,25 +121,40 @@ module SampleProofs (Atomic : Set) where
     lam (lam (case hyp (app (wkn (wkn (fst hyp))) hyp)
                        (app (wkn (wkn (snd hyp))) hyp)))
 
-module NBE-Samples (Atomic : Set) (a b c d : Atomic) where
+
+module SampleProofsR (Atomic : Set) where
 
   open Logic Atomic
-  open Completeness Atomic
 
-  id-id : [] ⊢ ⟪ a ⟫ ⊃ ⟪ a ⟫
-  id-id = app (lam hyp) (lam hyp)
+  snd-wkn : ∀ {p q r} → p ∷ (q ∧ r) ∷ [] ⊢ʳ r
+  snd-wkn = ne (snd (wkn (ne hyp)))
 
-  nbe-id-id : nbe id-id ≡ lam hyp
-  nbe-id-id = refl
+  snd-wkn′ : ∀ {p q r} → p ∷ (q ∧ r) ∷ [] ⊢ʳ r
+  snd-wkn′ = ne (wkn (ne (snd hyp)))
 
-  fst-pair : [] ⊢ ⟪ a ⟫ ⊃ ⟪ b ⟫ ⊃ ⟪ a ⟫
-  fst-pair = lam (lam (fst (pair (wkn hyp) hyp)))
+  ⊃-hyp : ∀ {p} → [] ⊢ʳ p ⊃ p
+  ⊃-hyp = lam (ne hyp)
 
-  nbe-fst-pair : nbe fst-pair ≡ lam (lam (wkn hyp))
-  nbe-fst-pair = refl
+  ⊃-wkn : ∀ {p q} → [] ⊢ʳ p ⊃ q ⊃ p
+  ⊃-wkn = lam (lam (ne (wkn (ne hyp))))
 
-  case-inl : [] ⊢ ⟪ a ⟫ ⊃ ⟪ a ⟫
-  case-inl = lam (case (inl hyp) hyp hyp)
+  ⊃-mp : ∀ {p q} → [] ⊢ʳ p ⊃ (p ⊃ q) ⊃ q
+  ⊃-mp = lam (lam (ne (app hyp (ne (wkn (ne hyp))))))
 
-  nbe-case-inl : nbe case-inl ≡ lam hyp
-  nbe-case-inl = refl
+  ⊃-trans : ∀ {p q r} → [] ⊢ʳ p ⊃ (p ⊃ q) ⊃ (q ⊃ r) ⊃ r
+  ⊃-trans =
+    lam (lam (lam (ne (app hyp
+                           (ne (app (wkn (ne hyp))
+                                    (ne (wkn (ne (wkn (ne hyp)))))))))))
+
+  ⊃-cut : ∀ {p q r} → [] ⊢ʳ (p ⊃ q ⊃ r) ⊃ (p ⊃ q) ⊃ p ⊃ r
+  ⊃-cut =
+    lam (lam (lam (ne (app (app (wkn (ne (wkn (ne hyp)))) (ne hyp))
+                           (ne (app (wkn (ne hyp)) (ne hyp)))))))
+
+  ∧-comm : ∀ {p q} → [] ⊢ʳ p ∧ q ⊃ q ∧ p
+  ∧-comm = lam (pair (ne (snd hyp)) (ne (fst hyp)))
+
+  ∧-assoc : ∀ {p q r} → [] ⊢ʳ (p ∧ q) ∧ r ⊃ p ∧ (q ∧ r)
+  ∧-assoc = lam (pair (ne (fst (fst hyp)))
+                      (pair (ne (snd (fst hyp))) (ne (snd hyp))))
