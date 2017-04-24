@@ -57,16 +57,16 @@ module Logic (Proposition : Set) where
     --  The classical negation rule!!!
     abs : ∀ {Γ p} → (p ⊃ 𝟘) ∷ Γ ⊢ 𝟘 → Γ ⊢ p
 
-  efq : ∀ {Γ p} → Γ ⊢ 𝟘 → Γ ⊢ p
-  efq {Γ} {⟪ a ⟫} Γ⊢𝟘 =
+  efq : ∀ {p Γ} → Γ ⊢ 𝟘 → Γ ⊢ p
+  efq {⟪ a ⟫} Γ⊢𝟘 =
     abort Γ⊢𝟘
-  efq {Γ} {p ⊃ q} Γ⊢𝟘 =
+  efq {p ⊃ q} Γ⊢𝟘 =
     lam (wkn (efq Γ⊢𝟘))
-  efq {Γ} {p ∧ q} Γ⊢𝟘 =
+  efq {p ∧ q} Γ⊢𝟘 =
     pair (efq Γ⊢𝟘) (efq Γ⊢𝟘)
-  efq {Γ} {p ∨ q} Γ⊢𝟘 =
+  efq {p ∨ q} Γ⊢𝟘 =
     inl (efq Γ⊢𝟘)
-  efq {Γ} {𝟘} Γ⊢𝟘 = Γ⊢𝟘
+  efq {𝟘} Γ⊢𝟘 = Γ⊢𝟘
 
 -- Worlds (interpretations)
 
