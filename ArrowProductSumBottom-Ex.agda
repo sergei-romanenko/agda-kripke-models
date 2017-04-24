@@ -15,10 +15,9 @@ open import Relation.Binary.PropositionalEquality
 
 open import ArrowProductSumBottom
 
+module SampleProofs (Atomic : Set)  where
 
-module SampleProofs (Proposition : Set)  where
-
-  open Logic Proposition
+  open Logic Atomic
 
   ⊃-hyp : ∀ {p} → [] ⊢ p ⊃ p
   ⊃-hyp = lam hyp

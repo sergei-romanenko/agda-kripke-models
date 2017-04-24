@@ -17,7 +17,7 @@ open ≡-Reasoning
 
 -- Syntax
 
-module Logic (Proposition : Set) where
+module Logic (Atomic : Set) where
 
   infix 3 _⊢_
   infixr 4 _⊃_
@@ -26,7 +26,7 @@ module Logic (Proposition : Set) where
   infix 7 ~_
 
   data Formula : Set where
-    ⟪_⟫  : (a : Proposition) → Formula
+    ⟪_⟫  : (a : Atomic) → Formula
     _⊃_ : (p q : Formula) → Formula
     _∧_ : (p q : Formula) → Formula
     _∨_ : (p q : Formula) → Formula
