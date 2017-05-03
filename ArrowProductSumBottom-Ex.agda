@@ -50,7 +50,7 @@ module SampleProofs (Atomic : Set)  where
   ∨-inr = lam (inr hyp)
 
   ∨-case : ∀ {p q r} → [] ⊢ (p ⊃ r) ⊃ (q ⊃ r) ⊃ p ∨ q ⊃ r
-  ∨-case {p} {q} {r} = lam (lam (lam
+  ∨-case = lam (lam (lam
     (case hyp (app (wkn (wkn (wkn hyp))) hyp) (app (wkn (wkn hyp)) hyp))))
 
   ∧-comm : ∀ {p q} → [] ⊢ p ∧ q ⊃ q ∧ p
@@ -107,11 +107,21 @@ module SampleProofs (Atomic : Set)  where
     lam (lam (case hyp (app (wkn (wkn (fst hyp))) hyp)
                        (app (wkn (wkn (snd hyp))) hyp)))
 
+  ∧le : ∀ {p q r Γ} → (p ∧ q) ∷ Γ ⊢ r → p ∷ q ∷ Γ ⊢ r
+  ∧le p∧q∷Γ⊢r =
+    app (wkn (app (wkn (app
+      (lam (lam (lam (app (wkn (wkn hyp)) (pair hyp (wkn hyp))))))
+      (lam p∧q∷Γ⊢r))) hyp)) hyp
+
+  ∧-cut : ∀ {p q r Γ} → (r ∧ p) ∷ Γ ⊢ q → p ∷ Γ ⊢ r ∨ q → p ∷ Γ ⊢ q
+  ∧-cut rp⊢q p⊢r∨q =
+    case p⊢r∨q (∧le rp⊢q) hyp
+
   -- Negation
 
   -- ~ p ⊃ p ⊃ q
-  ~-efq : ∀ {p q} → [] ⊢ (p ⊃ 𝟘) ⊃ p ⊃ q
-  ~-efq = lam (lam (efq (app (wkn hyp) hyp)))
+  contradict : ∀ {p q} → [] ⊢ (p ⊃ 𝟘) ⊃ p ⊃ q
+  contradict = lam (lam (efq (app (wkn hyp) hyp)))
 
   -- (p ⊃ q) ⊃ (p ⊃ ~ q) ⊃ ~ p
   ~-abs : ∀ {p q} → [] ⊢ (p ⊃ q) ⊃ (p ⊃ q ⊃ 𝟘) ⊃ p ⊃ 𝟘
@@ -149,21 +159,20 @@ module SampleProofs (Atomic : Set)  where
     lam (lam (case hyp (app (wkn (wkn (fst hyp))) hyp)
                        (app (wkn (wkn (snd hyp))) hyp)))
 
-  -- p ∨ ~ p is not derivable, but
-  -- ~ ~ (p ∨ ~ p)
-  dn-tnd : ∀ {p} → [] ⊢ (p ∨ (p ⊃ 𝟘) ⊃ 𝟘) ⊃ 𝟘
-  dn-tnd {p} =
-    lam (app hyp (inr (lam (app (wkn hyp) (inl hyp)))))
+  -- ~ p ∨ p is not derivable, but
+  -- ~ ~ (~ p ∨ p)
+
+  ~~tnd : ∀ {p} → [] ⊢ ((p ⊃ 𝟘) ∨ p ⊃ 𝟘) ⊃ 𝟘
+  ~~tnd = lam (app hyp (inl (lam (app (wkn hyp) (inr hyp)))))
 
   -- ~ ~ p ⊃ ~ ~ (p ⊃ q) ⊃ ~ ~ q
-  dn-⊃-mp : ∀ {p q} → [] ⊢
+  ~~-⊃-mp : ∀ {p q} → [] ⊢
     ((p ⊃ 𝟘) ⊃ 𝟘) ⊃ (((p ⊃ q) ⊃ 𝟘) ⊃ 𝟘) ⊃ (q ⊃ 𝟘) ⊃ 𝟘
-  dn-⊃-mp =
+  ~~-⊃-mp =
     lam (lam (lam (app (wkn hyp)
                        (lam (app (wkn (wkn (wkn hyp)))
                                  (lam (app (wkn (wkn hyp))
                                       (app (wkn hyp) hyp))))))))
-
 
 module Semantics1 (Proposition : Set) (kripke : Kripke Proposition) where
 
@@ -228,14 +237,10 @@ module Kripke1 where
 
   open Soundness Prop kripke
 
-  x∨~x = ⟪ x ⟫ ∨ ~ ⟪ x ⟫
-
-  ¬w0⊩x∨~x : ¬ (w0 ⊩ x∨~x)
-  ¬w0⊩x∨~x (inj₁ ())
-  ¬w0⊩x∨~x (inj₂ w0⊩⟪x⟫⊃𝟘) = w0⊩⟪x⟫⊃𝟘 ≼01 w1x
-
-  ¬⊢x∨~x : ¬ ([] ⊢ x∨~x)
-  ¬⊢x∨~x = ¬deducible w0 x∨~x ¬w0⊩x∨~x
+  ~x∨x = ~ ⟪ x ⟫ ∨ ⟪ x ⟫
+  ¬w0⊩~x∨x : ¬ (w0 ⊩ ~x∨x)
+  ¬w0⊩~x∨x (inj₁ w0⊩⟪x⟫⊃𝟘) = w0⊩⟪x⟫⊃𝟘 ≼01 w1x
+  ¬w0⊩~x∨x (inj₂ ())
 
   ~~x⊃x = ~ ~ ⟪ x ⟫ ⊃ ⟪ x ⟫
 

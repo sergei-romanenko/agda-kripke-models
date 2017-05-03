@@ -52,6 +52,8 @@ module Logic (Atomic : Set) where
              Γ ⊢ p ∨ q → p ∷ Γ ⊢ r → q ∷ Γ ⊢ r → Γ ⊢ r
     abort : ∀ {Γ a} → Γ ⊢ 𝟘 → Γ ⊢ ⟪ a ⟫
 
+  -- Ex falso quodlibet sequitur
+
   efq : ∀ {p Γ} → Γ ⊢ 𝟘 → Γ ⊢ p
   efq {⟪ a ⟫} Γ⊢𝟘 =
     abort Γ⊢𝟘
@@ -62,6 +64,23 @@ module Logic (Atomic : Set) where
   efq {p ∨ q} Γ⊢𝟘 =
     inl (efq Γ⊢𝟘)
   efq {𝟘} Γ⊢𝟘 = Γ⊢𝟘
+
+  -- Weakening
+
+  data _≼_ : (Γ Γ′ : Ctx) → Set where 
+    ≼-stop : ∀ {Γ} → Γ ≼ Γ
+    ≼-step : ∀ {Γ Γ′ p} → Γ ≼ Γ′ → Γ ≼ (p ∷ Γ′)
+
+  δ : ∀ {Γ p} → Γ ≼ (p ∷ Γ)
+  δ = ≼-step ≼-stop
+
+  ≼⊙ : ∀ {Γ Γ′ Γ′′} → Γ ≼ Γ′ → Γ′ ≼ Γ′′ → Γ ≼ Γ′′
+  ≼⊙ ≼′ ≼-stop = ≼′
+  ≼⊙ ≼′ (≼-step ≼′′) = ≼-step (≼⊙ ≼′ ≼′′)
+
+  ⊢≼ : ∀ {p Γ Γ′} → Γ ≼ Γ′ → Γ ⊢ p → Γ′ ⊢ p
+  ⊢≼ ≼-stop Γ⊢p = Γ⊢p
+  ⊢≼ (≼-step ≼′) Γ⊢p = wkn (⊢≼ ≼′ Γ⊢p)
 
 -- Worlds (Kripke structures)
 
@@ -88,7 +107,7 @@ module Semantics (Proposition : Set) (kripke : Kripke Proposition) where
   w ⊩ p ∨ q = w ⊩ p ⊎ w ⊩ q
   w ⊩ 𝟘 = ⊥
 
-  _⊪_ : World → List Formula → Set
+  _⊪_ : World → Ctx → Set
   w ⊪ [] = ⊤
   w ⊪ (p ∷ Γ) = w ⊩ p × w ⊪ Γ
 

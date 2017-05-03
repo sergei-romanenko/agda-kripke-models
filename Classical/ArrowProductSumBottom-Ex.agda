@@ -43,5 +43,5 @@ module SampleClassicalProofs (Proposition : Set)  where
   -- Peirce's law
   -- ((p ⊃ q) ⊃ p) ⊃ p
 
-  peirce : ∀ {p} {q} {Γ} → Γ ⊢ ((p ⊃ q) ⊃ p) ⊃ p
+  peirce : ∀ {p q Γ} → Γ ⊢ ((p ⊃ q) ⊃ p) ⊃ p
   peirce = lam (split (app (wkn hyp) (lam (efq (app (wkn hyp) hyp)))) hyp)

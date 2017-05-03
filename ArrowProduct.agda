@@ -39,6 +39,23 @@ module Logic (Atomic : Set) where
     fst : ∀ {Γ p q} → Γ ⊢ p ∧ q → Γ ⊢ p
     snd : ∀ {Γ p q} → Γ ⊢ p ∧ q → Γ ⊢ q
 
+  -- Weakening
+
+  data _≼_ : (Γ Γ′ : Ctx) → Set where 
+    ≼-stop : ∀ {Γ} → Γ ≼ Γ
+    ≼-step : ∀ {Γ Γ′ p} → Γ ≼ Γ′ → Γ ≼ (p ∷ Γ′)
+
+  δ : ∀ {Γ p} → Γ ≼ (p ∷ Γ)
+  δ = ≼-step ≼-stop
+
+  ≼⊙ : ∀ {Γ Γ′ Γ′′} → Γ ≼ Γ′ → Γ′ ≼ Γ′′ → Γ ≼ Γ′′
+  ≼⊙ ≼′ ≼-stop = ≼′
+  ≼⊙ ≼′ (≼-step ≼′′) = ≼-step (≼⊙ ≼′ ≼′′)
+
+  ⊢≼ : ∀ {p Γ Γ′} → Γ ≼ Γ′ → Γ ⊢ p → Γ′ ⊢ p
+  ⊢≼ ≼-stop Γ⊢p = Γ⊢p
+  ⊢≼ (≼-step ≼′) Γ⊢p = wkn (⊢≼ ≼′ Γ⊢p)
+
 -- Worlds (Kripke structures)
 
 record Kripke (Proposition : Set) : Set₁ where
@@ -110,27 +127,12 @@ module Completeness (Atomic : Set) where
 
   open Logic Atomic
 
-  data _≼_ : (Γ Γ′ : Ctx) → Set where 
-    ≼-refl : ∀ {Γ} → Γ ≼ Γ
-    ≼-cons : ∀ {Γ Γ′ p} → Γ ≼ Γ′ → Γ ≼ (p ∷ Γ′)
-
-  δ : ∀ {Γ p} → Γ ≼ (p ∷ Γ)
-  δ = ≼-cons ≼-refl
-
-  ≼-trans : ∀ {Γ Γ′ Γ′′} → Γ ≼ Γ′ → Γ′ ≼ Γ′′ → Γ ≼ Γ′′
-  ≼-trans ≼′ ≼-refl = ≼′
-  ≼-trans ≼′ (≼-cons ≼′′) = ≼-cons (≼-trans ≼′ ≼′′)
-
-  ⊢≼ : ∀ {p Γ Γ′} → Γ ≼ Γ′ → Γ ⊢ p → Γ′ ⊢ p
-  ⊢≼ ≼-refl Γ′⊢p = Γ′⊢p
-  ⊢≼ (≼-cons ≼′) Γ⊢p = wkn (⊢≼ ≼′ Γ⊢p)
-
   uks : Kripke Atomic
   uks = record
     { World = Ctx
     ; _≤_ = _≼_
-    ; ε = ≼-refl
-    ; _⊙_ = ≼-trans
+    ; ε = ≼-stop
+    ; _⊙_ = ≼⊙
     ; _⊩ᵃ_ = λ Γ a → Γ ⊢ ⟪ a ⟫
     ; ⊩ᵃ≤ = ⊢≼
     }

@@ -63,6 +63,27 @@ module Logic (Atomic : Set) where
       case : ∀ {Γ p q r} →
                Γ ⊢ᵉ p ∨ q → p ∷ Γ ⊢ʳ r → q ∷ Γ ⊢ʳ r → Γ ⊢ᵉ r
 
+  -- Weakening
+
+  data _≼_ : (Γ Γ′ : Ctx) → Set where 
+    ≼-stop : ∀ {Γ} → Γ ≼ Γ
+    ≼-step : ∀ {Γ Γ′ p} → Γ ≼ Γ′ → Γ ≼ (p ∷ Γ′)
+
+  δ : ∀ {Γ p} → Γ ≼ (p ∷ Γ)
+  δ = ≼-step ≼-stop
+
+  ≼⊙ : ∀ {Γ Γ′ Γ′′} → Γ ≼ Γ′ → Γ′ ≼ Γ′′ → Γ ≼ Γ′′
+  ≼⊙ ≼′ ≼-stop = ≼′
+  ≼⊙ ≼′ (≼-step ≼′′) = ≼-step (≼⊙ ≼′ ≼′′)
+
+  ⊢ᵉ≼ : ∀ {p Γ Γ′} → Γ ≼ Γ′ → Γ ⊢ᵉ p → Γ′ ⊢ᵉ p
+  ⊢ᵉ≼ ≼-stop Γ′⊢ᵉp = Γ′⊢ᵉp
+  ⊢ᵉ≼ (≼-step ≼′) Γ⊢ᵉp = wkn (ne (⊢ᵉ≼ ≼′ Γ⊢ᵉp))
+
+  ⊢ʳ≼ : ∀ {p Γ Γ′} → Γ ≼ Γ′ → Γ ⊢ʳ p → Γ′ ⊢ʳ p
+  ⊢ʳ≼ ≼-stop Γ⊢ʳp = Γ⊢ʳp
+  ⊢ʳ≼ (≼-step ≼′) Γ⊢ʳp = ne (wkn (⊢ʳ≼ ≼′ Γ⊢ʳp))
+
 -- Worlds (Kripke structures)
 
 record Kripke (Proposition : Set) : Set₁ where
@@ -166,31 +187,12 @@ module Completeness (Atomic : Set) where
 
   open Logic Atomic
 
-  data _≼_ : (Γ Γ′ : Ctx) → Set where 
-    ≼-refl : ∀ {Γ} → Γ ≼ Γ
-    ≼-cons : ∀ {Γ Γ′ p} → Γ ≼ Γ′ → Γ ≼ (p ∷ Γ′)
-
-  δ : ∀ {Γ p} → Γ ≼ (p ∷ Γ)
-  δ = ≼-cons ≼-refl
-
-  ≼-trans : ∀ {Γ Γ′ Γ′′} → Γ ≼ Γ′ → Γ′ ≼ Γ′′ → Γ ≼ Γ′′
-  ≼-trans ≼′ ≼-refl = ≼′
-  ≼-trans ≼′ (≼-cons ≼′′) = ≼-cons (≼-trans ≼′ ≼′′)
-
-  ⊢ᵉ≼ : ∀ {p Γ Γ′} → Γ ≼ Γ′ → Γ ⊢ᵉ p → Γ′ ⊢ᵉ p
-  ⊢ᵉ≼ ≼-refl Γ′⊢ᵉp = Γ′⊢ᵉp
-  ⊢ᵉ≼ (≼-cons ≼′) Γ⊢ᵉp = wkn (ne (⊢ᵉ≼ ≼′ Γ⊢ᵉp))
-
-  ⊢ʳ≼ : ∀ {p Γ Γ′} → Γ ≼ Γ′ → Γ ⊢ʳ p → Γ′ ⊢ʳ p
-  ⊢ʳ≼ ≼-refl Γ⊢ʳp = Γ⊢ʳp
-  ⊢ʳ≼ (≼-cons ≼′) Γ⊢ʳp = ne (wkn (⊢ʳ≼ ≼′ Γ⊢ʳp))
-
   uks : Kripke Formula
   uks = record
     { World = Ctx
     ; _≤_ = _≼_
-    ; ε = ≼-refl
-    ; _⊙_ = ≼-trans
+    ; ε = ≼-stop
+    ; _⊙_ = ≼⊙
     ; _⊩ᵃ_ = _⊢ʳ_
     ; ⊩ᵃ≤ = ⊢ʳ≼
     }
@@ -203,38 +205,38 @@ module Completeness (Atomic : Set) where
 
     reify : ∀ {Γ} p → Γ ⊩ p → Γ ⊢ʳ p
     reify ⟪ a ⟫ Γ⊩⟪a⟫ =
-      Γ⊩⟪a⟫ ⟪ a ⟫ ≼-refl (λ ≼′ Γ′⊩ᵃ⟪a⟫ → Γ′⊩ᵃ⟪a⟫)
+      Γ⊩⟪a⟫ ⟪ a ⟫ ε (λ ≼′ Γ′⊩ᵃ⟪a⟫ → Γ′⊩ᵃ⟪a⟫)
     reify (p ⊃ q) Γ⊩p⊃q =
-      Γ⊩p⊃q (p ⊃ q) ≼-refl (λ ≼′ kpq →
-        lam (reify q (kpq (≼-cons ≼-refl) (reflect p hyp))) )
+      Γ⊩p⊃q (p ⊃ q) ε (λ ≼′ kpq →
+        lam (reify q (kpq δ (reflect p hyp))) )
     reify (p ∧ q) Γ⊩p∧q =
       Γ⊩p∧q (p ∧ q) ε
         (λ ≼′ Γ′⊩p∧q →
           pair (reify p (proj₁ Γ′⊩p∧q)) (reify q (proj₂ Γ′⊩p∧q)))
     reify (p ∨ q) Γ⊩p∨q =
-      Γ⊩p∨q (p ∨ q) ≼-refl (λ ≼′ →
+      Γ⊩p∨q (p ∨ q) ε (λ ≼′ →
         [ (λ Γ′⊩p → inl (reify p Γ′⊩p)) , (λ Γ′⊩q → inr (reify q Γ′⊩q)) ]′)
 
     reflect : ∀ {Γ} p → Γ ⊢ᵉ p → Γ ⊩ p
     reflect ⟪ a ⟫ Γ⊢ᵉ⟪a⟫ r ≼′ k =
-      k ≼-refl (ne Γ′⊢ᵉ⟪a⟫)
+      k ε (ne Γ′⊢ᵉ⟪a⟫)
       where Γ′⊢ᵉ⟪a⟫ = ⊢ᵉ≼ ≼′ Γ⊢ᵉ⟪a⟫
     reflect (p ⊃ q) Γ⊢ᵉp⊃q r ≼′ k =
-      k ≼-refl (λ ≼′′ Γ′′⊩p →
+      k ε (λ ≼′′ Γ′′⊩p →
         reflect q (app (⊢ᵉ≼ (≼′ ⊙ ≼′′) Γ⊢ᵉp⊃q) (reify p Γ′′⊩p)))
     reflect (p ∧ q) Γ⊢ᵉp∧q r ≼′ k =
-      k ≼-refl (reflect p (fst Γ′⊢ᵉp∧q) , reflect q (snd Γ′⊢ᵉp∧q))
+      k ε (reflect p (fst Γ′⊢ᵉp∧q) , reflect q (snd Γ′⊢ᵉp∧q))
       where Γ′⊢ᵉp∧q = ⊢ᵉ≼ ≼′ Γ⊢ᵉp∧q
     reflect (p ∨ q) Γ⊢ᵉp∨q r {Γ′} ≼′ k =
       ne (case Γ′⊢ᵉp∨q
-               (k (≼-cons ≼-refl) (inj₁ (reflect p hyp)))
-               (k (≼-cons ≼-refl) (inj₂ (reflect q hyp))))
+               (k δ (inj₁ (reflect p hyp)))
+               (k δ (inj₂ (reflect q hyp))))
       where Γ′⊢ᵉp∨q = ⊢ᵉ≼ ≼′ Γ⊢ᵉp∨q
 
   reflect-context : (Γ : Ctx) → Γ ⊪ Γ
   reflect-context [] = tt
   reflect-context (p ∷ Γ) =
-    reflect p hyp , ⊪≤ Γ (≼-cons ≼-refl) (reflect-context Γ)
+    reflect p hyp , ⊪≤ Γ δ (reflect-context Γ)
 
   nbe : ∀ {Γ p} → Γ ⊢ p → Γ ⊢ʳ p
   nbe {Γ} {p} Γ⊢p = reify p (soundness Γ⊢p (reflect-context Γ))
